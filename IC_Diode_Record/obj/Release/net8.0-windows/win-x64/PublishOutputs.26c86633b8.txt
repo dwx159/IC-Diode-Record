@@ -1,0 +1,13 @@
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\IC_Diode_Record.pdb
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\D3DCompiler_47_cor3.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\PenImc_cor3.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\PresentationNative_cor3.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\vcruntime140_cor3.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\wpfgfx_cor3.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\Microsoft.CognitiveServices.Speech.core.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\Microsoft.CognitiveServices.Speech.extension.audio.sys.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\Microsoft.CognitiveServices.Speech.extension.codec.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\Microsoft.CognitiveServices.Speech.extension.kws.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\Microsoft.CognitiveServices.Speech.extension.kws.ort.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\Microsoft.CognitiveServices.Speech.extension.lu.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Release\net8.0-windows\publish\win-x64\IC_Diode_Record.exe
