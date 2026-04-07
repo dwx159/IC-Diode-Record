@@ -1,4 +1,4 @@
-
+﻿
 namespace IC_Diode_Record
 {
     partial class Form1
@@ -45,7 +45,7 @@ namespace IC_Diode_Record
             rowcol_set_label = new Label();
             clear_data_label = new Label();
             switchvertical_label = new Label();
-            direction_comboBox = new ComboBox();
+            switchvertical_btn = new Button();
             clear_data_btn = new Button();
             inportExcel_btn = new Button();
             serialpoart_groupBox = new GroupBox();
@@ -63,7 +63,6 @@ namespace IC_Diode_Record
             help_btn = new Button();
             voice_groupBox = new GroupBox();
             voicestate_RioBtn = new RadioButton();
-            voiceAzure_btn = new Button();
             voiceControl_btn = new Button();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             cellset_groupBox.SuspendLayout();
@@ -211,7 +210,7 @@ namespace IC_Diode_Record
             cellset_groupBox.Controls.Add(rowcol_set_label);
             cellset_groupBox.Controls.Add(clear_data_label);
             cellset_groupBox.Controls.Add(switchvertical_label);
-            cellset_groupBox.Controls.Add(direction_comboBox);
+            cellset_groupBox.Controls.Add(switchvertical_btn);
             cellset_groupBox.Controls.Add(clear_data_btn);
             cellset_groupBox.Controls.Add(rowcol_set_btn);
             cellset_groupBox.Controls.Add(enable_label);
@@ -258,16 +257,15 @@ namespace IC_Diode_Record
             switchvertical_label.TabIndex = 14;
             switchvertical_label.Text = "切换方向";
             // 
-            // direction_comboBox
+            // switchvertical_btn
             // 
-            direction_comboBox.DropDownStyle = ComboBoxStyle.DropDownList;
-            direction_comboBox.FormattingEnabled = true;
-            direction_comboBox.Items.AddRange(new object[] { "横向", "竖向", "逆时针" });
-            direction_comboBox.Location = new Point(290, 57);
-            direction_comboBox.Name = "direction_comboBox";
-            direction_comboBox.Size = new Size(67, 32);
-            direction_comboBox.TabIndex = 13;
-            direction_comboBox.SelectedIndexChanged += direction_comboBox_SelectedIndexChanged;
+            switchvertical_btn.Location = new Point(290, 53);
+            switchvertical_btn.Name = "switchvertical_btn";
+            switchvertical_btn.Size = new Size(67, 41);
+            switchvertical_btn.TabIndex = 13;
+            switchvertical_btn.Text = "横向";
+            switchvertical_btn.UseVisualStyleBackColor = true;
+            switchvertical_btn.Click += switchvertical_btn_Click;
             // 
             // clear_data_btn
             // 
@@ -446,7 +444,6 @@ namespace IC_Diode_Record
             // voice_groupBox
             // 
             voice_groupBox.Controls.Add(voicestate_RioBtn);
-            voice_groupBox.Controls.Add(voiceAzure_btn);
             voice_groupBox.Controls.Add(voiceControl_btn);
             voice_groupBox.Location = new Point(1373, 4);
             voice_groupBox.Name = "voice_groupBox";
@@ -459,7 +456,7 @@ namespace IC_Diode_Record
             // 
             voicestate_RioBtn.AutoSize = true;
             voicestate_RioBtn.Enabled = false;
-            voicestate_RioBtn.Location = new Point(24, 62);
+            voicestate_RioBtn.Location = new Point(16, 69);
             voicestate_RioBtn.Name = "voicestate_RioBtn";
             voicestate_RioBtn.Size = new Size(89, 28);
             voicestate_RioBtn.TabIndex = 6;
@@ -467,21 +464,11 @@ namespace IC_Diode_Record
             voicestate_RioBtn.Text = "已关闭";
             voicestate_RioBtn.UseVisualStyleBackColor = true;
             // 
-            // voiceAzure_btn
-            // 
-            voiceAzure_btn.Location = new Point(68, 29);
-            voiceAzure_btn.Name = "voiceAzure_btn";
-            voiceAzure_btn.Size = new Size(58, 32);
-            voiceAzure_btn.TabIndex = 17;
-            voiceAzure_btn.Text = "密钥";
-            voiceAzure_btn.UseVisualStyleBackColor = true;
-            voiceAzure_btn.Click += voiceAzure_btn_Click;
-            // 
             // voiceControl_btn
             // 
-            voiceControl_btn.Location = new Point(6, 28);
+            voiceControl_btn.Location = new Point(6, 32);
             voiceControl_btn.Name = "voiceControl_btn";
-            voiceControl_btn.Size = new Size(58, 32);
+            voiceControl_btn.Size = new Size(112, 35);
             voiceControl_btn.TabIndex = 16;
             voiceControl_btn.Text = "语音";
             voiceControl_btn.UseVisualStyleBackColor = true;
@@ -494,12 +481,10 @@ namespace IC_Diode_Record
             ClientSize = new Size(1654, 734);
             Controls.Add(panel2);
             Controls.Add(panel1);
-            KeyPreview = true;
             Margin = new Padding(4);
             Name = "Form1";
             Text = "Form1";
             FormClosing += Form1_FormClosing;
-            KeyDown += Form1_KeyDown;
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             cellset_groupBox.ResumeLayout(false);
@@ -543,11 +528,10 @@ namespace IC_Diode_Record
         private Panel panel1;
         private Panel panel2;
         private Button voiceControl_btn;
-        private Button voiceAzure_btn;
         private GroupBox voice_groupBox;
         private RadioButton voicestate_RioBtn;
         private Button inportCompare_btn;
-        private ComboBox direction_comboBox;
+        private Button switchvertical_btn;
         private Label switchvertical_label;
         private Label clear_data_label;
         private Label rowcol_set_label;

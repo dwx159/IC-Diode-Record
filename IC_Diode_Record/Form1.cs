@@ -11,10 +11,9 @@ using System.Management;
 using OfficeOpenXml;
 using System.IO;
 using System.IO.Ports;
-using Microsoft.CognitiveServices.Speech;
+using System.Speech.Recognition;
 using System.Diagnostics;
 using System.Diagnostics.Eventing.Reader;
-using System.Text.RegularExpressions;
 
 
 namespace IC_Diode_Record
@@ -61,9 +60,6 @@ namespace IC_Diode_Record
             dataGridView1.CellBeginEdit += dataGridView1_CellBeginEdit;
             dataGridView1.CellEndEdit += dataGridView1_CellEndEdit;
             dataGridView1.CurrentCellChanged += dataGridView1_CurrentCellChanged;
-
-            // 写入方向默认值
-            direction_comboBox.SelectedIndex = 0;
 
         }
 
@@ -301,18 +297,10 @@ namespace IC_Diode_Record
 
 
 
-        #region datagridview按键函数（F1 禁用当前格并下一格、Ctrl+D、Ctrl+C/V；空格在 Form1_KeyDown）
-        // datagridview按键函数（表格相关快捷键；空格需配合窗体 KeyPreview 见 Form1_KeyDown）
+        #region datagridview按键函数（Ctrl+D禁用/启用单元格、Ctrl+C / Ctrl+V（复制/粘贴多个单元格））
+        // datagridview按键函数
         private void dataGridView1_KeyDown(object sender, KeyEventArgs e)
         {
-            // F1：禁用当前单元格，并按当前写入方向跳到下一格
-            if (e.KeyCode == Keys.F1)
-            {
-                DisableCurrentCellAndAdvanceToNext();
-                e.Handled = true;
-                return;
-            }
-
             // Ctrl+D：对【所有选中单元格】切换禁用/启用
             if (e.Control && e.KeyCode == Keys.D)
             {
@@ -370,62 +358,6 @@ namespace IC_Diode_Record
                     cell.Tag = null;
                 }
             }
-        }
-
-        // 禁用当前单元格并按当前写入方向跳到下一格（与 F1 / 语音「跳过」一致）
-        private void DisableCurrentCellAndAdvanceToNext()
-        {
-            DisableConsecutiveCellsAlongDirection(1, skipToNextWritableAfter: false);
-        }
-
-        // 沿写入方向连续禁用 count 格；skipToNextWritableAfter 为 true 时（语音「跳过N个」N≥2）再前进到首个可写格
-        private void DisableConsecutiveCellsAlongDirection(int count, bool skipToNextWritableAfter)
-        {
-            if (count < 1 || dataGridView1.CurrentCell == null)
-                return;
-
-            int totalRows = dataGridView1.RowCount;
-            int totalCols = dataGridView1.ColumnCount;
-            if (totalRows <= 0 || totalCols <= 0)
-                return;
-
-            int maxSteps = totalRows * totalCols;
-            count = Math.Min(count, maxSteps);
-
-            for (int i = 0; i < count; i++)
-            {
-                var cell = dataGridView1.CurrentCell;
-                if (cell.RowIndex < 0 || cell.ColumnIndex < 0)
-                    return;
-
-                cell.ReadOnly = true;
-                cell.Style.BackColor = Color.LightGray;
-                cell.Tag = "DISABLED";
-
-                currentRow = cell.RowIndex;
-                currentCol = cell.ColumnIndex;
-                NormalizeCurrentCellForDirection(totalRows, totalCols);
-                AdvanceToNextCell(totalRows, totalCols);
-
-                if (currentRow < 0 || currentRow >= totalRows || currentCol < 0 || currentCol >= totalCols)
-                    return;
-                dataGridView1.CurrentCell = dataGridView1.Rows[currentRow].Cells[currentCol];
-            }
-
-            if (!skipToNextWritableAfter)
-                return;
-
-            for (int s = 0; s < maxSteps; s++)
-            {
-                var c = dataGridView1.Rows[currentRow].Cells[currentCol];
-                if (!c.ReadOnly)
-                    break;
-                AdvanceToNextCell(totalRows, totalCols);
-                if (currentRow < 0 || currentRow >= totalRows || currentCol < 0 || currentCol >= totalCols)
-                    return;
-            }
-
-            dataGridView1.CurrentCell = dataGridView1.Rows[currentRow].Cells[currentCol];
         }
         #endregion
 
@@ -857,121 +789,14 @@ namespace IC_Diode_Record
 
 
 
-        #region 写入数据按键事件，按空格也可以进行一次写入
+        #region 写入数据按键事件
         // 写入数据按键事件
         // 全局变量记录当前位置
         private int currentRow = 0;
         private int currentCol = 0;
 
         private bool _isWriting = false; //是否正在写入数据状态
-        private enum WriteDirection
-        {
-            Horizontal,
-            Vertical,
-            CounterClockwise
-        }
-        private WriteDirection currentDirection = WriteDirection.Horizontal;
-
-        private static bool IsPerimeterCell(int row, int col, int totalRows, int totalCols)
-        {
-            return row == 0 || col == 0 || row == totalRows - 1 || col == totalCols - 1;
-        }
-
-        private static List<(int Row, int Col)> BuildCounterClockwisePerimeterPath(int totalRows, int totalCols)
-        {
-            var path = new List<(int Row, int Col)>();
-            if (totalRows <= 0 || totalCols <= 0)
-                return path;
-
-            // 单行：从左到右
-            if (totalRows == 1)
-            {
-                for (int c = 0; c < totalCols; c++)
-                    path.Add((0, c));
-                return path;
-            }
-
-            // 单列：从上到下
-            if (totalCols == 1)
-            {
-                for (int r = 0; r < totalRows; r++)
-                    path.Add((r, 0));
-                return path;
-            }
-
-            // 左边：上 -> 下
-            for (int r = 0; r < totalRows; r++)
-                path.Add((r, 0));
-            // 下边：左 -> 右（跳过左下角）
-            for (int c = 1; c < totalCols; c++)
-                path.Add((totalRows - 1, c));
-            // 右边：下 -> 上（跳过右下角）
-            for (int r = totalRows - 2; r >= 0; r--)
-                path.Add((r, totalCols - 1));
-            // 上边：右 -> 左（跳过右上角和左上角）
-            for (int c = totalCols - 2; c >= 1; c--)
-                path.Add((0, c));
-
-            return path;
-        }
-
-        private void NormalizeCurrentCellForDirection(int totalRows, int totalCols)
-        {
-            if (currentDirection != WriteDirection.CounterClockwise)
-                return;
-            if (IsPerimeterCell(currentRow, currentCol, totalRows, totalCols))
-                return;
-
-            // 逆时针模式只写最外圈：若当前选择在内圈，自动跳到左上角外圈起点
-            currentRow = 0;
-            currentCol = 0;
-        }
-
-        private void AdvanceToNextCell(int totalRows, int totalCols)
-        {
-            switch (currentDirection)
-            {
-                case WriteDirection.Horizontal:
-                    currentCol++;
-                    if (currentCol >= totalCols)
-                    {
-                        currentCol = 0;
-                        currentRow++;
-                        if (currentRow >= totalRows)
-                            currentRow = 0;
-                    }
-                    break;
-
-                case WriteDirection.Vertical:
-                    currentRow++;
-                    if (currentRow >= totalRows)
-                    {
-                        currentCol++;
-                        currentRow = 0;
-                        if (currentCol >= totalCols)
-                            currentCol = 0;
-                    }
-                    break;
-
-                case WriteDirection.CounterClockwise:
-                    var path = BuildCounterClockwisePerimeterPath(totalRows, totalCols);
-                    if (path.Count == 0)
-                        return;
-
-                    int idx = path.FindIndex(p => p.Row == currentRow && p.Col == currentCol);
-                    if (idx < 0)
-                    {
-                        currentRow = path[0].Row;
-                        currentCol = path[0].Col;
-                        return;
-                    }
-
-                    int nextIdx = (idx + 1) % path.Count;
-                    currentRow = path[nextIdx].Row;
-                    currentCol = path[nextIdx].Col;
-                    break;
-            }
-        }
+        private bool switchvertical = false; //是否切换到竖向写入。默认为横向写入
         private async void write_btn_Click(object sender, EventArgs e)
         {
             if (_isWriting) return;   // 防止重复进入
@@ -980,7 +805,6 @@ namespace IC_Diode_Record
 
             try
             {
-                
                 
                 //发送串口读取命令
                 serialPort.Write("READ_ON");  // 发送文本
@@ -993,7 +817,7 @@ namespace IC_Diode_Record
                 double.TryParse(data_receive, out double data_receive_double);  //转换为double数值
                 
 
-                // data_receive_double = 1;  //调试代码
+                //double data_receive_double = 1;  //调试代码
 
                 //将数据写入dataGridView1
                 if (dataGridView1.ColumnCount == 0 || dataGridView1.RowCount == 0)
@@ -1008,12 +832,6 @@ namespace IC_Diode_Record
                     currentRow = dataGridView1.CurrentCell.RowIndex;
                     currentCol = dataGridView1.CurrentCell.ColumnIndex;
                 }
-
-                // 逆时针外圈归位：仅当「起始格可写」时执行。若起始格已是禁用，应先按方向跳过，
-                // 若先归位到 (0,0) 再写入会多跳过一格本可写入的单元格。
-                var startCell = dataGridView1.Rows[currentRow].Cells[currentCol];
-                if (!startCell.ReadOnly)
-                    NormalizeCurrentCellForDirection(totalRows, totalCols);
 
                 int attempts = 0; // 防止无限循环
                 while (attempts < totalRows * totalCols)
@@ -1034,8 +852,29 @@ namespace IC_Diode_Record
                         }
                         
 
-                        // 根据方向切到下一个格子
-                        AdvanceToNextCell(totalRows, totalCols);
+                        //判断横向写入还是竖向写入，切换到下一个格子
+                        if (!switchvertical)   // 横向写入
+                        {
+                            currentCol++;
+                            if (currentCol >= totalCols)
+                            {
+                                currentCol = 0;
+                                currentRow++;
+                                if (currentRow >= totalRows)
+                                    currentRow = 0;
+                            }
+                        }
+                        else                 // 竖向写入
+                        {
+                            currentRow++;
+                            if (currentRow >= totalRows)
+                            {
+                                currentCol++;
+                                currentRow = 0;
+                                if (currentCol >= totalCols)
+                                    currentCol = 0;
+                            }
+                        }
 
 
                         // 设置 CurrentCell 可视化
@@ -1045,8 +884,29 @@ namespace IC_Diode_Record
                     else
                     {
                         // 不写数据，直接跳过禁用单元格
-                        // 跳过禁用格时也按同样方向移动
-                        AdvanceToNextCell(totalRows, totalCols);
+                        //判断横向写入还是竖向写入，切换到下一个格子
+                        if (!switchvertical)   // 横向写入
+                        {
+                            currentCol++;
+                            if (currentCol >= totalCols)
+                            {
+                                currentCol = 0;
+                                currentRow++;
+                                if (currentRow >= totalRows)
+                                    currentRow = 0;
+                            }
+                        }
+                        else                 // 竖向写入
+                        {
+                            currentRow++;
+                            if (currentRow >= totalRows)
+                            {
+                                currentCol++;
+                                currentRow = 0;
+                                if (currentCol >= totalCols)
+                                    currentCol = 0;
+                            }
+                        }
                     }
 
                     attempts++;
@@ -1070,32 +930,24 @@ namespace IC_Diode_Record
             }
 
         }
-
-        // 空格：与「写入」相同（放在窗体上并配合 KeyPreview，避免焦点在表格/编辑框里时插入空格而不触发写入）
-        private void Form1_KeyDown(object? sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Space)
-            {
-                e.Handled = true;
-                e.SuppressKeyPress = true;
-                write_btn_Click(null, null);
-            }
-        }
-
-
         #endregion
 
 
 
-        #region 下拉列表切换写入方向（横向/竖向/逆时针）
-        private void direction_comboBox_SelectedIndexChanged(object sender, EventArgs e)
+        #region 按键切换写入数据方向，横向或竖向
+        // 按键切换写入数据方向，横向或竖向
+        private void switchvertical_btn_Click(object sender, EventArgs e)
         {
-            currentDirection = direction_comboBox.SelectedIndex switch
+            if (switchvertical)
             {
-                1 => WriteDirection.Vertical,
-                2 => WriteDirection.CounterClockwise,
-                _ => WriteDirection.Horizontal
-            };
+                switchvertical = false;
+                switchvertical_btn.Text = "横向";
+            }
+            else
+            {
+                switchvertical = true;
+                switchvertical_btn.Text = "竖向";
+            }
         }
         #endregion
 
@@ -1345,229 +1197,85 @@ namespace IC_Diode_Record
 
 
         #region 语音控制
-        // Azure 语音服务（联网）：中文识别质量优于本机 SAPI；免费层 F0 需 Azure 免费账号，每月有免费额度（以微软官网为准）。
-        private SpeechRecognizer? _azureRecognizer;
-        private bool voiceEnabled = false;
-
-        /// <summary>说出任一词即触发「写入」（云端识别结果可能带标点，故用包含匹配）。</summary>
-        private static readonly string[] VoiceWritePhrases =
+        // 语音控制
+        private SpeechRecognitionEngine recognizer;
+        private bool voiceEnabled = false;   // 语音开关状态
+        // 初始化语音
+        private void InitSpeechRecognition()
         {
-            "测试", "开始测试"
-        };
-
-        // 帮助 Azure 短语列表识别「跳过」类命令
-        private static readonly string[] VoiceSkipPhrases =
-        {
-            "跳过", "跳过1个", "跳过2个", "跳过3个", "跳过4个", "跳过5个",
-            "跳过一个", "跳过两个", "跳过三个", "跳过四个", "跳过五个"
-        };
-
-        private void StopVoiceRecognitionIfRunning()
-        {
-            if (_azureRecognizer == null) return;
             try
             {
-                _azureRecognizer.StopContinuousRecognitionAsync().Wait(TimeSpan.FromSeconds(12));
+                recognizer = new SpeechRecognitionEngine(new System.Globalization.CultureInfo("zh-CN"));
+
+                // 定义命令
+                Choices commands = new Choices();
+                commands.Add(new string[] { "测试" });
+
+                GrammarBuilder gb = new GrammarBuilder();
+                gb.Append(commands);
+
+                Grammar grammar = new Grammar(gb);
+                recognizer.LoadGrammar(grammar);
+
+                recognizer.SetInputToDefaultAudioDevice(); // 默认麦克风
+                recognizer.SpeechRecognized += Recognizer_SpeechRecognized;
             }
-            catch { /* */ }
-            try
+            catch (Exception ex)
             {
-                _azureRecognizer.Dispose();
+                MessageBox.Show("初始化语音识别失败，请确认是否插入麦克风：" + ex.Message);
             }
-            catch { /* */ }
-            _azureRecognizer = null;
-            voiceEnabled = false;
         }
 
-        private static bool AzureTextMatchesWriteCommand(string recognized)
+        // 语音识别回调（触发写数据）
+        private void Recognizer_SpeechRecognized(object sender, SpeechRecognizedEventArgs e)
         {
-            if (string.IsNullOrWhiteSpace(recognized)) return false;
-            var t = recognized.Trim().TrimEnd('。', '！', '!', '.');
-            return VoiceWritePhrases.Any(p => t.Contains(p, StringComparison.Ordinal));
-        }
-
-        private static readonly Dictionary<char, int> VoiceChineseDigitMap = new()
-        {
-            ['零'] = 0, ['一'] = 1, ['二'] = 2, ['两'] = 2, ['三'] = 3, ['四'] = 4, ['五'] = 5,
-            ['六'] = 6, ['七'] = 7, ['八'] = 8, ['九'] = 9,
-        };
-
-        private static bool TryParseChineseNumberLite(string s, out int value)
-        {
-            value = 0;
-            s = s.Trim();
-            if (string.IsNullOrEmpty(s)) return false;
-
-            if (s.Length == 1 && VoiceChineseDigitMap.TryGetValue(s[0], out int one) && one > 0)
-            {
-                value = one;
-                return true;
-            }
-
-            if (s is "十" or "一十")
-            {
-                value = 10;
-                return true;
-            }
-
-            if (s.Length == 2 && s[0] == '十' && VoiceChineseDigitMap.TryGetValue(s[1], out int u1))
-            {
-                value = 10 + u1;
-                return true;
-            }
-
-            if (s.Length == 2 && VoiceChineseDigitMap.TryGetValue(s[0], out int tens) && tens > 0 && s[1] == '十')
-            {
-                value = tens * 10;
-                return true;
-            }
-
-            if (s.Length == 3 && VoiceChineseDigitMap.TryGetValue(s[0], out int t10) && s[1] == '十' &&
-                VoiceChineseDigitMap.TryGetValue(s[2], out int u2))
-            {
-                value = t10 * 10 + u2;
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool TryParseVoiceSkipCommand(string recognized, out int count)
-        {
-            count = 0;
-            if (string.IsNullOrWhiteSpace(recognized)) return false;
-            var t = recognized.Trim().TrimEnd('。', '！', '!', '.');
-            if (!t.Contains("跳过", StringComparison.Ordinal)) return false;
-
-            var mNum = Regex.Match(t, @"跳过\s*(\d{1,3})\s*[个格]?");
-            if (mNum.Success && int.TryParse(mNum.Groups[1].Value, out int d) && d >= 1)
-            {
-                count = d;
-                return true;
-            }
-
-            var mCn = Regex.Match(t, @"跳过\s*([一二两三四五六七八九十]+)\s*[个格]?");
-            if (mCn.Success && TryParseChineseNumberLite(mCn.Groups[1].Value, out int cn) && cn >= 1)
-            {
-                count = cn;
-                return true;
-            }
-
-            // 仅「跳过」：避免与「测试」等写入语同时出现时误触（含写入关键词则不走跳过）
-            if (AzureTextMatchesWriteCommand(t)) return false;
-            if (Regex.IsMatch(t, @"^\s*跳过\s*[。！!.…]*\s*$"))
-            {
-                count = 1;
-                return true;
-            }
-
-            return false;
-        }
-
-        private void AzureRecognizer_Recognized(object? sender, SpeechRecognitionEventArgs e)
-        {
-            if (e.Result.Reason != ResultReason.RecognizedSpeech)
+            // 置信度过滤（很重要，防误触）
+            if (e.Result.Confidence < 0.3)
                 return;
 
-            if (TryParseVoiceSkipCommand(e.Result.Text, out int skipCount))
+            if (e.Result.Text == "测试")
             {
-                bool skipToWritable = skipCount >= 2;
+                // 切回 UI 线程
                 this.BeginInvoke(new Action(() =>
-                    DisableConsecutiveCellsAlongDirection(skipCount, skipToWritable)));
-                return;
+                {
+                    write_btn_Click(null, null);
+                }));
             }
-
-            if (!AzureTextMatchesWriteCommand(e.Result.Text))
-                return;
-
-            this.BeginInvoke(new Action(() => { write_btn_Click(null, null); }));
         }
 
-        private void AzureRecognizer_Canceled(object? sender, SpeechRecognitionCanceledEventArgs e)
-        {
-            if (e.Reason != CancellationReason.Error)
-                return;
-            this.BeginInvoke(new Action(() =>
-            {
-                MessageBox.Show(
-                    "Azure 语音识别错误：" + e.ErrorDetails,
-                    "语音",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Warning);
-            }));
-        }
-
-        private void voiceAzure_btn_Click(object sender, EventArgs e)
-        {
-            using var dlg = new VoiceAzureConfigForm(AzureVoiceSettings.Load());
-            if (dlg.ShowDialog(this) != DialogResult.OK) return;
-            dlg.GetSettings().Save();
-            MessageBox.Show("已保存。请点击「语音」开启识别。", "Azure 语音", MessageBoxButtons.OK, MessageBoxIcon.Information);
-        }
-
-        private async void voiceControl_btn_Click(object sender, EventArgs e)
+        // 语音控制开关按钮点击
+        private void voiceControl_btn_Click(object sender, EventArgs e)
         {
             try
             {
                 if (!voiceEnabled)
                 {
-                    var settings = AzureVoiceSettings.Load();
-                    if (!settings.IsValid)
-                    {
-                        MessageBox.Show("请先点击「密钥」，填写 Azure 语音资源的密钥与区域。", "Azure 语音", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                        return;
-                    }
+                    InitSpeechRecognition();    // 初始化
+                    recognizer.RecognizeAsync(RecognizeMode.Multiple);  // 启动识别
+                    voiceEnabled = true;
 
-                    StopVoiceRecognitionIfRunning();
-
-                    var speechConfig = SpeechConfig.FromSubscription(settings.SubscriptionKey, settings.Region);
-                    speechConfig.SpeechRecognitionLanguage = "zh-CN";
-
-                    SpeechRecognizer? recognizer = null;
-                    try
-                    {
-                        recognizer = new SpeechRecognizer(speechConfig);
-                        var phraseList = PhraseListGrammar.FromRecognizer(recognizer);
-                        foreach (var p in VoiceWritePhrases)
-                            phraseList.AddPhrase(p);
-                        foreach (var p in VoiceSkipPhrases)
-                            phraseList.AddPhrase(p);
-
-                        recognizer.Recognized += AzureRecognizer_Recognized;
-                        recognizer.Canceled += AzureRecognizer_Canceled;
-
-                        await recognizer.StartContinuousRecognitionAsync().ConfigureAwait(true);
-
-                        _azureRecognizer = recognizer;
-                        recognizer = null;
-                        voiceEnabled = true;
-
-                        voicestate_RioBtn.Text = "已开启";
-                        voicestate_RioBtn.Checked = true;
-                        voiceControl_btn.BackColor = Color.PaleGreen;
-                    }
-                    finally
-                    {
-                        recognizer?.Dispose();
-                    }
+                    voicestate_RioBtn.Text = "已开启";
+                    voicestate_RioBtn.Checked = true;
+                    voiceControl_btn.BackColor = Color.PaleGreen;
                 }
                 else
                 {
-                    StopVoiceRecognitionIfRunning();
+                    recognizer.RecognizeAsyncStop();    //暂停
+                    recognizer.Dispose();   // 关闭，释放资源
+                    voiceEnabled = false;
 
                     voicestate_RioBtn.Text = "已关闭";
                     voicestate_RioBtn.Checked = false;
                     voiceControl_btn.BackColor = Color.White;
+
                 }
             }
-            catch (Exception ex)
+            catch (InvalidOperationException)
             {
-                MessageBox.Show("启动语音识别失败：" + ex.Message + "\r\n请检查密钥、区域与网络。", "Azure 语音", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                StopVoiceRecognitionIfRunning();
-                voicestate_RioBtn.Text = "已关闭";
-                voicestate_RioBtn.Checked = false;
-                voiceControl_btn.BackColor = Color.White;
+                // 
             }
+
+
         }
         #endregion
 
@@ -1579,7 +1287,7 @@ namespace IC_Diode_Record
          *  1. 表格设置
             • <生成表格>：行数和列数输入数字，点击<设置>按钮生成表格。
             • <清除数据>：清除当前表格数据（禁用单元格不影响）。
-            • <切换方向>：通过下拉列表选择记录方向：横向、竖向、逆时针（仅最外圈）。
+            • <切换方向>：点击切换记录数据的方向，横向或者纵向。
             • <禁用单元格>：选中单元格后，按快捷键Ctrl+D可以将该单元格禁用。后续写入数据时会跳过该单元格。可以选择多个单元格一起禁用。
 
             2. 串口设置
@@ -1587,7 +1295,7 @@ namespace IC_Diode_Record
             • <连接设备>：在下拉框选择采集小板对应的串口，点击连接设备。
 
             3. 数据操作
-            • <写入>：点击按键，表格会将当前测试值记录到表格上，位置会从当前选择的单元格开始，方向参考前面<切换方向>。
+            • <写入>：点击按键，表格会将当前测试值记录到表格上，位置会从当前选择的单元格开始，方向参考前面<切换方向>
             • <保存>：保存当前记录的表格。测试未完成也可以先保存，后续再导入继续进行测试。
             • <导入>：导入前面未完成的数据或设置好的表格模版，然后继续测试。模版中的单元格如果需要禁用，要将填充背景颜色设置为浅灰色(R/G/B三个都为211)。如果单元格显示浅蓝色，可能原始表格使用的是主题色填充，需要更改
             • <对比>：如果需要实时对比数据，点击<对比>按钮将另一个样品的数据导入。注意对比样品的表格格式需要一致。一般是OK品数据。
@@ -1596,15 +1304,10 @@ namespace IC_Diode_Record
             • 如果测试过程中发现软件记录的值和万用表显示相差较大，可以做一次校准。
             • 校准方法为：先用万用表测试一个值，然后将这个值输入到输入框，最后点击<校准>按键（注意此时万用表需要一直在测着）。
 
-            5. 语音控制（需联网）
-            • 点击<密钥>填写API，点击<语音>开启/关闭云端识别。
-            • 可以说"测试"、"开始测试"。这些都会进行一次 写入操作。
-            • 可以说「跳过」：等同 F1，禁用当前格并前进一格；「跳过2个」「跳过两个」：沿方向禁用 2 格再跳到下一可写格；「跳过3个」等同理。
-
-            6. 快捷键
-            • 按"空格"可以进行一次写入操作。
-            • 按"F1"可以禁用当前单元格并跳到下一个格子。
-
+            4. 语音控制
+            • 点击<语音>按钮后打开语音控制。再点击关闭语音。
+            • 打开语音控制后，可以说<测试>，软件会自动记录一次数据，替代点击写入功能。
+            • 目前语音识别功能在不同电脑上体验不同，如果识别不准就不要用了。
          * 
          * 
          * 
@@ -1615,11 +1318,10 @@ namespace IC_Diode_Record
         {
             string helpText = @"关键功能
 1. 表格设置
-• <切换方向>：通过下拉列表选择记录方向：横向、竖向、逆时针（仅最外圈）。
+• <切换方向>：点击切换记录数据的方向，横向或者纵向。
 • <禁用单元格>：选中单元格后，按快捷键Ctrl+D可以将该单元格禁用。后续写入数据时会跳过该单元格。
 
 2. 数据操作
-• <写入>：点击按键，表格会将当前测试值记录到表格上。 
 • <保存>：保存当前记录的表格。测试未完成也可以先保存，后续再导入继续进行测试。
 • <导入>：导入前面未完成的数据或设置好的表格模版，然后继续测试。模版中的单元格如果需要禁用，要将填充背景颜色设置为浅灰色(R/G/B三个都为211)。如果单元格显示浅蓝色，可能原始表格使用的是主题色填充，需要更改
 • <对比>：如果需要实时对比数据，点击<对比>按钮将另一个样品的数据导入。注意对比样品的表格格式需要一致。一般是OK品数据。
@@ -1628,13 +1330,8 @@ namespace IC_Diode_Record
 • 如果测试过程中发现软件记录的值和万用表显示相差较大，可以做一次校准。
 
 4. 语音控制
-• 点击<密钥>填写API，点击<语音>开启/关闭云端识别。
-• 可以说""测试""、""开始测试""。这些都会进行一次 写入操作。
-• 可以说「跳过」：等同 F1；「跳过2个」「跳过两个」：禁用 2 格后跳到下一可写格；「跳过3个」等同理。
-
-5. 快捷键
-• 按""空格""可以进行一次写入操作。
-• 按""F1""可以禁用当前单元格并跳到下一个格子。
+• 打开语音控制后，可以说<测试>，软件会自动记录一次数据，替代点击写入功能。
+• 目前语音识别功能在不同电脑上体验不同，如果识别不准就不要用了。
 ";
 
             MessageBox.Show(helpText, "软件使用说明",
@@ -1648,8 +1345,6 @@ namespace IC_Diode_Record
         //程序退出时提示保存
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
-            StopVoiceRecognitionIfRunning();
-
             // 弹出提示框
             DialogResult result = MessageBox.Show(
                 "是否保存数据？",
