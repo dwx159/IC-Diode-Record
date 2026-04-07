@@ -29,15 +29,11 @@ namespace IC_Diode_Record
         /// </summary>
         private void InitializeComponent()
         {
-            reflash_COM = new Button();
             row_num_label = new Label();
             col_num_label = new Label();
             row_set_textbox = new TextBox();
             col_set_textbox = new TextBox();
             dataGridView1 = new DataGridView();
-            serialport_select = new ComboBox();
-            open_serialport = new Button();
-            write_btn = new Button();
             save_btn = new Button();
             rowcol_set_btn = new Button();
             enable_label = new Label();
@@ -48,15 +44,10 @@ namespace IC_Diode_Record
             direction_comboBox = new ComboBox();
             clear_data_btn = new Button();
             inportExcel_btn = new Button();
-            serialpoart_groupBox = new GroupBox();
             data_groupBox = new GroupBox();
             inportCompare_label = new Label();
             inportExcel_label = new Label();
             inportCompare_btn = new Button();
-            train_groupBox = new GroupBox();
-            train_label = new Label();
-            train_btn = new Button();
-            train_textbox = new TextBox();
             panel1 = new Panel();
             panel2 = new Panel();
             help_groupBox = new GroupBox();
@@ -67,25 +58,12 @@ namespace IC_Diode_Record
             voiceControl_btn = new Button();
             ((System.ComponentModel.ISupportInitialize)dataGridView1).BeginInit();
             cellset_groupBox.SuspendLayout();
-            serialpoart_groupBox.SuspendLayout();
             data_groupBox.SuspendLayout();
-            train_groupBox.SuspendLayout();
             panel1.SuspendLayout();
             panel2.SuspendLayout();
             help_groupBox.SuspendLayout();
             voice_groupBox.SuspendLayout();
             SuspendLayout();
-            // 
-            // reflash_COM
-            // 
-            reflash_COM.Location = new Point(7, 24);
-            reflash_COM.Margin = new Padding(4);
-            reflash_COM.Name = "reflash_COM";
-            reflash_COM.Size = new Size(122, 35);
-            reflash_COM.TabIndex = 0;
-            reflash_COM.Text = "刷新串口";
-            reflash_COM.UseVisualStyleBackColor = true;
-            reflash_COM.Click += reflash_COM_Click;
             // 
             // row_num_label
             // 
@@ -140,42 +118,9 @@ namespace IC_Diode_Record
             dataGridView1.CellValueChanged += dataGridView1_CellValueChanged;
             dataGridView1.KeyDown += dataGridView1_KeyDown;
             // 
-            // serialport_select
-            // 
-            serialport_select.FormattingEnabled = true;
-            serialport_select.Location = new Point(7, 63);
-            serialport_select.Margin = new Padding(4);
-            serialport_select.Name = "serialport_select";
-            serialport_select.Size = new Size(369, 32);
-            serialport_select.TabIndex = 6;
-            // 
-            // open_serialport
-            // 
-            open_serialport.BackColor = Color.LightGreen;
-            open_serialport.Location = new Point(254, 24);
-            open_serialport.Margin = new Padding(4);
-            open_serialport.Name = "open_serialport";
-            open_serialport.Size = new Size(122, 35);
-            open_serialport.TabIndex = 7;
-            open_serialport.Text = "连接设备";
-            open_serialport.UseVisualStyleBackColor = false;
-            open_serialport.Click += open_serialport_Click;
-            // 
-            // write_btn
-            // 
-            write_btn.BackColor = Color.Chocolate;
-            write_btn.Location = new Point(8, 26);
-            write_btn.Margin = new Padding(4);
-            write_btn.Name = "write_btn";
-            write_btn.Size = new Size(100, 70);
-            write_btn.TabIndex = 8;
-            write_btn.Text = "写入";
-            write_btn.UseVisualStyleBackColor = false;
-            write_btn.Click += write_btn_Click;
-            // 
             // save_btn
             // 
-            save_btn.Location = new Point(260, 28);
+            save_btn.Location = new Point(8, 28);
             save_btn.Margin = new Padding(4);
             save_btn.Name = "save_btn";
             save_btn.Size = new Size(65, 68);
@@ -282,7 +227,7 @@ namespace IC_Diode_Record
             // 
             // inportExcel_btn
             // 
-            inportExcel_btn.Location = new Point(116, 53);
+            inportExcel_btn.Location = new Point(88, 53);
             inportExcel_btn.Margin = new Padding(4);
             inportExcel_btn.Name = "inportExcel_btn";
             inportExcel_btn.Size = new Size(65, 43);
@@ -291,33 +236,18 @@ namespace IC_Diode_Record
             inportExcel_btn.UseVisualStyleBackColor = true;
             inportExcel_btn.Click += inportExcel_btn_Click;
             // 
-            // serialpoart_groupBox
-            // 
-            serialpoart_groupBox.Controls.Add(serialport_select);
-            serialpoart_groupBox.Controls.Add(reflash_COM);
-            serialpoart_groupBox.Controls.Add(open_serialport);
-            serialpoart_groupBox.Location = new Point(377, 4);
-            serialpoart_groupBox.Margin = new Padding(4);
-            serialpoart_groupBox.Name = "serialpoart_groupBox";
-            serialpoart_groupBox.Padding = new Padding(4);
-            serialpoart_groupBox.Size = new Size(383, 104);
-            serialpoart_groupBox.TabIndex = 13;
-            serialpoart_groupBox.TabStop = false;
-            serialpoart_groupBox.Text = "串口设置";
-            // 
             // data_groupBox
             // 
             data_groupBox.Controls.Add(inportCompare_label);
             data_groupBox.Controls.Add(inportExcel_label);
             data_groupBox.Controls.Add(inportCompare_btn);
             data_groupBox.Controls.Add(inportExcel_btn);
-            data_groupBox.Controls.Add(write_btn);
             data_groupBox.Controls.Add(save_btn);
-            data_groupBox.Location = new Point(768, 4);
+            data_groupBox.Location = new Point(377, 4);
             data_groupBox.Margin = new Padding(4);
             data_groupBox.Name = "data_groupBox";
             data_groupBox.Padding = new Padding(4);
-            data_groupBox.Size = new Size(337, 104);
+            data_groupBox.Size = new Size(248, 104);
             data_groupBox.TabIndex = 14;
             data_groupBox.TabStop = false;
             data_groupBox.Text = "数据操作";
@@ -326,7 +256,7 @@ namespace IC_Diode_Record
             // 
             inportCompare_label.AutoSize = true;
             inportCompare_label.Font = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            inportCompare_label.Location = new Point(184, 28);
+            inportCompare_label.Location = new Point(156, 28);
             inportCompare_label.Name = "inportCompare_label";
             inportCompare_label.Size = new Size(69, 20);
             inportCompare_label.TabIndex = 20;
@@ -336,7 +266,7 @@ namespace IC_Diode_Record
             // 
             inportExcel_label.AutoSize = true;
             inportExcel_label.Font = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            inportExcel_label.Location = new Point(113, 28);
+            inportExcel_label.Location = new Point(85, 28);
             inportExcel_label.Name = "inportExcel_label";
             inportExcel_label.Size = new Size(69, 20);
             inportExcel_label.TabIndex = 19;
@@ -344,59 +274,13 @@ namespace IC_Diode_Record
             // 
             // inportCompare_btn
             // 
-            inportCompare_btn.Location = new Point(188, 53);
+            inportCompare_btn.Location = new Point(160, 53);
             inportCompare_btn.Name = "inportCompare_btn";
             inportCompare_btn.Size = new Size(65, 43);
             inportCompare_btn.TabIndex = 14;
             inportCompare_btn.Text = "对比";
             inportCompare_btn.UseVisualStyleBackColor = true;
             inportCompare_btn.Click += inportCompare_btn_Click;
-            // 
-            // train_groupBox
-            // 
-            train_groupBox.Controls.Add(train_label);
-            train_groupBox.Controls.Add(train_btn);
-            train_groupBox.Controls.Add(train_textbox);
-            train_groupBox.Location = new Point(1113, 4);
-            train_groupBox.Margin = new Padding(4);
-            train_groupBox.Name = "train_groupBox";
-            train_groupBox.Padding = new Padding(4);
-            train_groupBox.Size = new Size(253, 104);
-            train_groupBox.TabIndex = 15;
-            train_groupBox.TabStop = false;
-            train_groupBox.Text = "校准设置";
-            // 
-            // train_label
-            // 
-            train_label.AutoSize = true;
-            train_label.Font = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Regular, GraphicsUnit.Point, 134);
-            train_label.ForeColor = Color.Maroon;
-            train_label.Location = new Point(84, 35);
-            train_label.Margin = new Padding(4, 0, 4, 0);
-            train_label.Name = "train_label";
-            train_label.Size = new Size(167, 60);
-            train_label.TabIndex = 2;
-            train_label.Text = "首次连接后校准\r\n1.测试一个值然后输入\r\n2.再点击校准(边侧边点)";
-            // 
-            // train_btn
-            // 
-            train_btn.Location = new Point(6, 62);
-            train_btn.Margin = new Padding(4);
-            train_btn.Name = "train_btn";
-            train_btn.Size = new Size(70, 35);
-            train_btn.TabIndex = 1;
-            train_btn.Text = "校准";
-            train_btn.UseVisualStyleBackColor = true;
-            train_btn.Click += train_btn_Click;
-            // 
-            // train_textbox
-            // 
-            train_textbox.Location = new Point(6, 24);
-            train_textbox.Margin = new Padding(4);
-            train_textbox.Name = "train_textbox";
-            train_textbox.Size = new Size(70, 30);
-            train_textbox.TabIndex = 0;
-            train_textbox.KeyPress += train_textbox_KeyPress;
             // 
             // panel1
             // 
@@ -414,8 +298,6 @@ namespace IC_Diode_Record
             panel2.Controls.Add(voice_groupBox);
             panel2.Controls.Add(cellset_groupBox);
             panel2.Controls.Add(data_groupBox);
-            panel2.Controls.Add(train_groupBox);
-            panel2.Controls.Add(serialpoart_groupBox);
             panel2.Dock = DockStyle.Top;
             panel2.Location = new Point(0, 0);
             panel2.Name = "panel2";
@@ -425,7 +307,7 @@ namespace IC_Diode_Record
             // help_groupBox
             // 
             help_groupBox.Controls.Add(help_btn);
-            help_groupBox.Location = new Point(1512, 4);
+            help_groupBox.Location = new Point(900, 4);
             help_groupBox.Name = "help_groupBox";
             help_groupBox.Size = new Size(130, 104);
             help_groupBox.TabIndex = 17;
@@ -448,7 +330,7 @@ namespace IC_Diode_Record
             voice_groupBox.Controls.Add(voicestate_RioBtn);
             voice_groupBox.Controls.Add(voiceAzure_btn);
             voice_groupBox.Controls.Add(voiceControl_btn);
-            voice_groupBox.Location = new Point(1373, 4);
+            voice_groupBox.Location = new Point(761, 4);
             voice_groupBox.Name = "voice_groupBox";
             voice_groupBox.Size = new Size(132, 104);
             voice_groupBox.TabIndex = 16;
@@ -494,21 +376,16 @@ namespace IC_Diode_Record
             ClientSize = new Size(1654, 734);
             Controls.Add(panel2);
             Controls.Add(panel1);
-            KeyPreview = true;
             Margin = new Padding(4);
             Name = "Form1";
             Text = "Form1";
             FormClosing += Form1_FormClosing;
-            KeyDown += Form1_KeyDown;
             Load += Form1_Load;
             ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             cellset_groupBox.ResumeLayout(false);
             cellset_groupBox.PerformLayout();
-            serialpoart_groupBox.ResumeLayout(false);
             data_groupBox.ResumeLayout(false);
             data_groupBox.PerformLayout();
-            train_groupBox.ResumeLayout(false);
-            train_groupBox.PerformLayout();
             panel1.ResumeLayout(false);
             panel2.ResumeLayout(false);
             help_groupBox.ResumeLayout(false);
@@ -519,25 +396,16 @@ namespace IC_Diode_Record
 
         #endregion
 
-        private System.Windows.Forms.Button reflash_COM;
         private System.Windows.Forms.Label row_num_label;
         private System.Windows.Forms.Label col_num_label;
         private System.Windows.Forms.TextBox row_set_textbox;
         private System.Windows.Forms.TextBox col_set_textbox;
         private System.Windows.Forms.DataGridView dataGridView1;
-        private System.Windows.Forms.ComboBox serialport_select;
-        private System.Windows.Forms.Button open_serialport;
-        private System.Windows.Forms.Button write_btn;
         private System.Windows.Forms.Button save_btn;
         private System.Windows.Forms.Button rowcol_set_btn;
         private System.Windows.Forms.Label enable_label;
         private System.Windows.Forms.GroupBox cellset_groupBox;
-        private System.Windows.Forms.GroupBox serialpoart_groupBox;
         private System.Windows.Forms.GroupBox data_groupBox;
-        private System.Windows.Forms.GroupBox train_groupBox;
-        private System.Windows.Forms.Button train_btn;
-        private System.Windows.Forms.TextBox train_textbox;
-        private System.Windows.Forms.Label train_label;
         private System.Windows.Forms.Button clear_data_btn;
         private System.Windows.Forms.Button inportExcel_btn;
         private Panel panel1;

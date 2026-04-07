@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -7,13 +7,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Management;
 using OfficeOpenXml;
 using System.IO;
-using System.IO.Ports;
 using Microsoft.CognitiveServices.Speech;
 using System.Diagnostics;
-using System.Diagnostics.Eventing.Reader;
 using System.Text.RegularExpressions;
 
 
@@ -21,9 +18,6 @@ namespace IC_Diode_Record
 {
     public partial class Form1 : Form
     {
-        private SerialPort serialPort = new SerialPort();
-
-
         public Form1()
         {
             InitializeComponent();
@@ -86,26 +80,6 @@ namespace IC_Diode_Record
             e.Handled = true;
         }
 
-        // 校准的textbox，只允许输入数字、小数
-        private void train_textbox_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            TextBox tb = sender as TextBox;
-
-            // 允许退格键
-            if (char.IsControl(e.KeyChar))
-                return;
-
-            // 允许数字
-            if (char.IsDigit(e.KeyChar))
-                return;
-
-            // 允许小数点，但只能有一个
-            if (e.KeyChar == '.' && !tb.Text.Contains("."))
-                return;
-
-            // 其他字符都阻止
-            e.Handled = true;
-        }
         #endregion
 
 
@@ -301,8 +275,8 @@ namespace IC_Diode_Record
 
 
 
-        #region datagridview按键函数（F1 禁用当前格并下一格、Ctrl+D、Ctrl+C/V；空格在 Form1_KeyDown）
-        // datagridview按键函数（表格相关快捷键；空格需配合窗体 KeyPreview 见 Form1_KeyDown）
+        #region datagridview按键函数（F1 禁用当前格并下一格、Ctrl+D、Ctrl+C/V）
+        // datagridview按键函数（表格相关快捷键）
         private void dataGridView1_KeyDown(object sender, KeyEventArgs e)
         {
             // F1：禁用当前单元格，并按当前写入方向跳到下一格
@@ -763,101 +737,7 @@ namespace IC_Diode_Record
 
 
 
-        #region 打开串口
-        // 打开串口点击事件
-        private void open_serialport_Click(object sender, EventArgs e)
-        {
-            try
-            {
-                if (open_serialport.Text == "连接设备")
-                {
-                    // 设置串口参数
-                    string com_temp = "";
-                    int dashIndex = serialport_select.Text.IndexOf('-');
-
-                    if (dashIndex > 0)
-                    {
-                        // 提取'-'之前的部分并去除空格
-                        com_temp = serialport_select.Text.Substring(0, dashIndex).Trim();
-                    }
-
-
-                    serialPort.PortName = com_temp;      // 串口号
-                    serialPort.BaudRate = 115200;          // 波特率
-
-                    // 打开串口
-                    serialPort.Open();
-
-                    //文字改为关闭
-                    open_serialport.Text = "关闭设备";
-                    open_serialport.BackColor = Color.Red;
-
-                }
-                else if (open_serialport.Text == "关闭设备")
-                {
-                    serialPort.Close();
-
-                    //文字改为关闭
-                    open_serialport.Text = "连接设备";
-                    open_serialport.BackColor = Color.PaleGreen;
-                }
-
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"设备连接错误：{ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-
-        }
-
-
-        //刷新串口点击事件
-        private void reflash_COM_Click(object sender, EventArgs e)
-        {
-            serialport_select.Items.Clear();
-
-            string[] ports = SerialPort.GetPortNames();
-            foreach (string port in ports)
-            {
-                // 获取详细信息（通过WMI）
-                string description = GetPortDescription(port);
-                string com_tepm = port + "-" + description;
-                serialport_select.Items.Add(com_tepm);
-            }
-        }
-
-
-        // 获取串口详细信息（需要 System.Management 引用）
-        private string GetPortDescription(string portName)
-        {
-            try
-            {
-                ManagementObjectSearcher searcher =
-                    new ManagementObjectSearcher("SELECT * FROM Win32_PnPEntity");
-
-                foreach (ManagementObject obj in searcher.Get())
-                {
-                    if (obj["Caption"] != null)
-                    {
-                        string caption = obj["Caption"].ToString();
-                        if (caption.Contains(portName))
-                        {
-                            return caption;
-                        }
-                    }
-                }
-            }
-            catch
-            {
-                // 如果无法获取详细信息，返回空
-            }
-            return "未知设备";
-        }
-        #endregion
-
-
-
-        #region 写入数据按键事件，按空格也可以进行一次写入
+        #region 写入表格（语音读数）
         // 写入数据按键事件
         // 全局变量记录当前位置
         private int currentRow = 0;
@@ -972,116 +852,69 @@ namespace IC_Diode_Record
                     break;
             }
         }
-        private async void write_btn_Click(object sender, EventArgs e)
+        /// <summary>将语音识别得到的读数写入当前流向的下一可写格，并前进。</summary>
+        private void WriteMeasurementToGrid(object cellValue, bool olOrange)
         {
-            if (_isWriting) return;   // 防止重复进入
-            _isWriting = true;          //状态切换为正在写入
-            write_btn.Enabled = false;      //点击后先禁用按钮，仿真快速点击误响应
+            if (dataGridView1.ColumnCount == 0 || dataGridView1.RowCount == 0)
+                return;
 
-            try
+            int totalRows = dataGridView1.RowCount;
+            int totalCols = dataGridView1.ColumnCount;
+
+            if (dataGridView1.CurrentCell != null)
             {
-                
-                
-                //发送串口读取命令
-                serialPort.Write("READ_ON");  // 发送文本
+                currentRow = dataGridView1.CurrentCell.RowIndex;
+                currentCol = dataGridView1.CurrentCell.ColumnIndex;
+            }
 
-                System.Threading.Thread.Sleep(100);  //延迟一段时间，避免串口数据还没传回来
+            var startCell = dataGridView1.Rows[currentRow].Cells[currentCol];
+            if (!startCell.ReadOnly)
+                NormalizeCurrentCellForDirection(totalRows, totalCols);
 
-                //获取串口回来的数据
-                string data_receive = serialPort.ReadExisting();  // 读取所有可用数据
-                data_receive = data_receive.Trim(); // 去掉空格、\r、\n
-                double.TryParse(data_receive, out double data_receive_double);  //转换为double数值
-                
+            int attempts = 0;
+            while (attempts < totalRows * totalCols)
+            {
+                var cell = dataGridView1.Rows[currentRow].Cells[currentCol];
 
-                // data_receive_double = 1;  //调试代码
-
-                //将数据写入dataGridView1
-                if (dataGridView1.ColumnCount == 0 || dataGridView1.RowCount == 0)
-                    return;
-
-                int totalRows = dataGridView1.RowCount;
-                int totalCols = dataGridView1.ColumnCount;
-
-                // 如果用户手动选中了单元格，就从选中单元格开始
-                if (dataGridView1.CurrentCell != null)
+                if (!cell.ReadOnly)
                 {
-                    currentRow = dataGridView1.CurrentCell.RowIndex;
-                    currentCol = dataGridView1.CurrentCell.ColumnIndex;
-                }
-
-                // 逆时针外圈归位：仅当「起始格可写」时执行。若起始格已是禁用，应先按方向跳过，
-                // 若先归位到 (0,0) 再写入会多跳过一格本可写入的单元格。
-                var startCell = dataGridView1.Rows[currentRow].Cells[currentCol];
-                if (!startCell.ReadOnly)
-                    NormalizeCurrentCellForDirection(totalRows, totalCols);
-
-                int attempts = 0; // 防止无限循环
-                while (attempts < totalRows * totalCols)
-                {
-                    var cell = dataGridView1.Rows[currentRow].Cells[currentCol];
-
-                    // 如果单元格可写
-                    if (!cell.ReadOnly)
+                    if (olOrange)
                     {
-                        if (data_receive_double > 2.2)
-                        {
-                            cell.Value = "OL";                      // 数据大于2.2V，就判断为OL
-                            cell.Style.BackColor = Color.Orange;    // 橙色
-                        }
-                        else
-                        {
-                            cell.Value = data_receive_double;       // 数据小于2.2V，正常写入
-                        }
-                        
-
-                        // 根据方向切到下一个格子
-                        AdvanceToNextCell(totalRows, totalCols);
-
-
-                        // 设置 CurrentCell 可视化
-                        dataGridView1.CurrentCell = dataGridView1.Rows[currentRow].Cells[currentCol];
-                        break;
+                        cell.Value = "OL";
+                        cell.Style.BackColor = Color.Orange;
                     }
                     else
                     {
-                        // 不写数据，直接跳过禁用单元格
-                        // 跳过禁用格时也按同样方向移动
-                        AdvanceToNextCell(totalRows, totalCols);
+                        cell.Value = cellValue;
+                        cell.Style.BackColor = Color.White;
                     }
 
-                    attempts++;
+                    AdvanceToNextCell(totalRows, totalCols);
+                    dataGridView1.CurrentCell = dataGridView1.Rows[currentRow].Cells[currentCol];
+                    break;
                 }
 
-                // 写完数据播放提示音
-                System.Media.SystemSounds.Exclamation.Play();  // 默认提示音
-                //System.Media.SystemSounds.Hand.Play();      // 手型提示音（错误音）
-
+                AdvanceToNextCell(totalRows, totalCols);
+                attempts++;
             }
-            catch (Exception ex)
+
+            System.Media.SystemSounds.Exclamation.Play();
+        }
+
+        private async void CommitVoiceMeasurementAsync(object cellValue, bool olOrange)
+        {
+            if (_isWriting) return;
+            _isWriting = true;
+            try
             {
-                MessageBox.Show($"请先连接设备：{ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                WriteMeasurementToGrid(cellValue, olOrange);
             }
             finally
             {
-                await Task.Delay(300);          // 过滤连点 / 抖动
-
-                write_btn.Enabled = true;      //结束后再把按键启用
+                await Task.Delay(300);
                 _isWriting = false;
             }
-
         }
-
-        // 空格：与「写入」相同（放在窗体上并配合 KeyPreview，避免焦点在表格/编辑框里时插入空格而不触发写入）
-        private void Form1_KeyDown(object? sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Space)
-            {
-                e.Handled = true;
-                e.SuppressKeyPress = true;
-                write_btn_Click(null, null);
-            }
-        }
-
 
         #endregion
 
@@ -1314,53 +1147,10 @@ namespace IC_Diode_Record
 
 
 
-        #region 校验点击事件        
-        //校准点击按键事件
-        private void train_btn_Click(object sender, EventArgs e)
-        {
-            try
-            {
-
-
-                //发送串口读取命令
-                string train_value = train_textbox.Text.Trim();  //获取校验值
-                serialPort.Write($"TRAIN_{train_value}");        // 发送校验命令
-
-                System.Threading.Thread.Sleep(100);              //延迟一段时间，避免串口数据还没传回来
-
-                //获取串口回来的数据
-                string data_receive = serialPort.ReadExisting();  // 读取所有可用数据
-                data_receive = data_receive.Trim(); // 去掉空格、\r、\n
-                double.TryParse(data_receive, out double data_receive_double);  //转换为double数值
-
-                MessageBox.Show($"校准值为：{data_receive_double}", "校准成功");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show($"请先连接设备：{ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
-        #endregion
-
-
-
         #region 语音控制
         // Azure 语音服务（联网）：中文识别质量优于本机 SAPI；免费层 F0 需 Azure 免费账号，每月有免费额度（以微软官网为准）。
         private SpeechRecognizer? _azureRecognizer;
         private bool voiceEnabled = false;
-
-        /// <summary>说出任一词即触发「写入」（云端识别结果可能带标点，故用包含匹配）。</summary>
-        private static readonly string[] VoiceWritePhrases =
-        {
-            "测试", "开始测试"
-        };
-
-        // 帮助 Azure 短语列表识别「跳过」类命令
-        private static readonly string[] VoiceSkipPhrases =
-        {
-            "跳过", "跳过1个", "跳过2个", "跳过3个", "跳过4个", "跳过5个",
-            "跳过一个", "跳过两个", "跳过三个", "跳过四个", "跳过五个"
-        };
 
         private void StopVoiceRecognitionIfRunning()
         {
@@ -1379,97 +1169,16 @@ namespace IC_Diode_Record
             voiceEnabled = false;
         }
 
-        private static bool AzureTextMatchesWriteCommand(string recognized)
-        {
-            if (string.IsNullOrWhiteSpace(recognized)) return false;
-            var t = recognized.Trim().TrimEnd('。', '！', '!', '.');
-            return VoiceWritePhrases.Any(p => t.Contains(p, StringComparison.Ordinal));
-        }
-
-        private static readonly Dictionary<char, int> VoiceChineseDigitMap = new()
-        {
-            ['零'] = 0, ['一'] = 1, ['二'] = 2, ['两'] = 2, ['三'] = 3, ['四'] = 4, ['五'] = 5,
-            ['六'] = 6, ['七'] = 7, ['八'] = 8, ['九'] = 9,
-        };
-
-        private static bool TryParseChineseNumberLite(string s, out int value)
-        {
-            value = 0;
-            s = s.Trim();
-            if (string.IsNullOrEmpty(s)) return false;
-
-            if (s.Length == 1 && VoiceChineseDigitMap.TryGetValue(s[0], out int one) && one > 0)
-            {
-                value = one;
-                return true;
-            }
-
-            if (s is "十" or "一十")
-            {
-                value = 10;
-                return true;
-            }
-
-            if (s.Length == 2 && s[0] == '十' && VoiceChineseDigitMap.TryGetValue(s[1], out int u1))
-            {
-                value = 10 + u1;
-                return true;
-            }
-
-            if (s.Length == 2 && VoiceChineseDigitMap.TryGetValue(s[0], out int tens) && tens > 0 && s[1] == '十')
-            {
-                value = tens * 10;
-                return true;
-            }
-
-            if (s.Length == 3 && VoiceChineseDigitMap.TryGetValue(s[0], out int t10) && s[1] == '十' &&
-                VoiceChineseDigitMap.TryGetValue(s[2], out int u2))
-            {
-                value = t10 * 10 + u2;
-                return true;
-            }
-
-            return false;
-        }
-
-        private static bool TryParseVoiceSkipCommand(string recognized, out int count)
-        {
-            count = 0;
-            if (string.IsNullOrWhiteSpace(recognized)) return false;
-            var t = recognized.Trim().TrimEnd('。', '！', '!', '.');
-            if (!t.Contains("跳过", StringComparison.Ordinal)) return false;
-
-            var mNum = Regex.Match(t, @"跳过\s*(\d{1,3})\s*[个格]?");
-            if (mNum.Success && int.TryParse(mNum.Groups[1].Value, out int d) && d >= 1)
-            {
-                count = d;
-                return true;
-            }
-
-            var mCn = Regex.Match(t, @"跳过\s*([一二两三四五六七八九十]+)\s*[个格]?");
-            if (mCn.Success && TryParseChineseNumberLite(mCn.Groups[1].Value, out int cn) && cn >= 1)
-            {
-                count = cn;
-                return true;
-            }
-
-            // 仅「跳过」：避免与「测试」等写入语同时出现时误触（含写入关键词则不走跳过）
-            if (AzureTextMatchesWriteCommand(t)) return false;
-            if (Regex.IsMatch(t, @"^\s*跳过\s*[。！!.…]*\s*$"))
-            {
-                count = 1;
-                return true;
-            }
-
-            return false;
-        }
-
         private void AzureRecognizer_Recognized(object? sender, SpeechRecognitionEventArgs e)
         {
+            // 调试：在 Visual Studio「输出」窗口查看 Azure 返回的原文（显示来自: 调试）
+            string raw = e.Result.Text ?? string.Empty;
+            Debug.WriteLine($"[语音] Reason={e.Result.Reason}, 原文: \"{raw}\"");
+
             if (e.Result.Reason != ResultReason.RecognizedSpeech)
                 return;
 
-            if (TryParseVoiceSkipCommand(e.Result.Text, out int skipCount))
+            if (VoiceRecognitionParser.TryParseSkipCommand(e.Result.Text, out int skipCount))
             {
                 bool skipToWritable = skipCount >= 2;
                 this.BeginInvoke(new Action(() =>
@@ -1477,10 +1186,13 @@ namespace IC_Diode_Record
                 return;
             }
 
-            if (!AzureTextMatchesWriteCommand(e.Result.Text))
+            if (!VoiceRecognitionParser.TryParseMeasurement(e.Result.Text, out object? meas, out bool ol))
+            {
+                Debug.WriteLine($"[语音] 解析未命中（非跳过指令且无法解析为测量）原文: \"{raw}\"");
                 return;
+            }
 
-            this.BeginInvoke(new Action(() => { write_btn_Click(null, null); }));
+            this.BeginInvoke(new Action(() => CommitVoiceMeasurementAsync(meas!, ol)));
         }
 
         private void AzureRecognizer_Canceled(object? sender, SpeechRecognitionCanceledEventArgs e)
@@ -1502,7 +1214,7 @@ namespace IC_Diode_Record
             using var dlg = new VoiceAzureConfigForm(AzureVoiceSettings.Load());
             if (dlg.ShowDialog(this) != DialogResult.OK) return;
             dlg.GetSettings().Save();
-            MessageBox.Show("已保存。请点击「语音」开启识别。", "Azure 语音", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show("已保存。请点击「语音」开启识别，读出数值或「跳过」等指令。", "Azure 语音", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private async void voiceControl_btn_Click(object sender, EventArgs e)
@@ -1528,9 +1240,9 @@ namespace IC_Diode_Record
                     {
                         recognizer = new SpeechRecognizer(speechConfig);
                         var phraseList = PhraseListGrammar.FromRecognizer(recognizer);
-                        foreach (var p in VoiceWritePhrases)
+                        foreach (var p in VoiceRecognitionParser.MeasurementPhraseHints)
                             phraseList.AddPhrase(p);
-                        foreach (var p in VoiceSkipPhrases)
+                        foreach (var p in VoiceRecognitionParser.SkipPhrases)
                             phraseList.AddPhrase(p);
 
                         recognizer.Recognized += AzureRecognizer_Recognized;
@@ -1582,27 +1294,17 @@ namespace IC_Diode_Record
             • <切换方向>：通过下拉列表选择记录方向：横向、竖向、逆时针（仅最外圈）。
             • <禁用单元格>：选中单元格后，按快捷键Ctrl+D可以将该单元格禁用。后续写入数据时会跳过该单元格。可以选择多个单元格一起禁用。
 
-            2. 串口设置
-            • <刷新串口>：插入USB设备后，点击刷新才能显示采集小板的串口。
-            • <连接设备>：在下拉框选择采集小板对应的串口，点击连接设备。
-
-            3. 数据操作
-            • <写入>：点击按键，表格会将当前测试值记录到表格上，位置会从当前选择的单元格开始，方向参考前面<切换方向>。
+            2. 数据操作
+            • 读数写入：开启「语音」后，直接说出数值（如 1.5、12.3）、带阻抗单位（K/k/千、M/m/兆，如 1.5K），或 OL/开路/过载 等；会按当前方向写入当前格并前进。
             • <保存>：保存当前记录的表格。测试未完成也可以先保存，后续再导入继续进行测试。
             • <导入>：导入前面未完成的数据或设置好的表格模版，然后继续测试。模版中的单元格如果需要禁用，要将填充背景颜色设置为浅灰色(R/G/B三个都为211)。如果单元格显示浅蓝色，可能原始表格使用的是主题色填充，需要更改
             • <对比>：如果需要实时对比数据，点击<对比>按钮将另一个样品的数据导入。注意对比样品的表格格式需要一致。一般是OK品数据。
 
-            4. 校准设置
-            • 如果测试过程中发现软件记录的值和万用表显示相差较大，可以做一次校准。
-            • 校准方法为：先用万用表测试一个值，然后将这个值输入到输入框，最后点击<校准>按键（注意此时万用表需要一直在测着）。
-
-            5. 语音控制（需联网）
+            3. 语音控制（需联网）
             • 点击<密钥>填写API，点击<语音>开启/关闭云端识别。
-            • 可以说"测试"、"开始测试"。这些都会进行一次 写入操作。
             • 可以说「跳过」：等同 F1，禁用当前格并前进一格；「跳过2个」「跳过两个」：沿方向禁用 2 格再跳到下一可写格；「跳过3个」等同理。
 
-            6. 快捷键
-            • 按"空格"可以进行一次写入操作。
+            4. 快捷键
             • 按"F1"可以禁用当前单元格并跳到下一个格子。
 
          * 
@@ -1619,21 +1321,16 @@ namespace IC_Diode_Record
 • <禁用单元格>：选中单元格后，按快捷键Ctrl+D可以将该单元格禁用。后续写入数据时会跳过该单元格。
 
 2. 数据操作
-• <写入>：点击按键，表格会将当前测试值记录到表格上。 
+• 语音读数：阿拉伯或中文整数/小数（如 123、1.23、一二三、一百二十三、十二点三四），可加 K/M/千/兆，或 OL/开路/过载；「跳过」支持中文数量（如 跳过二十三）。
 • <保存>：保存当前记录的表格。测试未完成也可以先保存，后续再导入继续进行测试。
 • <导入>：导入前面未完成的数据或设置好的表格模版，然后继续测试。模版中的单元格如果需要禁用，要将填充背景颜色设置为浅灰色(R/G/B三个都为211)。如果单元格显示浅蓝色，可能原始表格使用的是主题色填充，需要更改
 • <对比>：如果需要实时对比数据，点击<对比>按钮将另一个样品的数据导入。注意对比样品的表格格式需要一致。一般是OK品数据。
 
-3. 校准设置
-• 如果测试过程中发现软件记录的值和万用表显示相差较大，可以做一次校准。
-
-4. 语音控制
+3. 语音控制
 • 点击<密钥>填写API，点击<语音>开启/关闭云端识别。
-• 可以说""测试""、""开始测试""。这些都会进行一次 写入操作。
-• 可以说「跳过」：等同 F1；「跳过2个」「跳过两个」：禁用 2 格后跳到下一可写格；「跳过3个」等同理。
+• 「跳过」等同 F1；「跳过2个」「跳过两个」「跳过二十三」等：按数量沿方向禁用格子。
 
-5. 快捷键
-• 按""空格""可以进行一次写入操作。
+4. 快捷键
 • 按""F1""可以禁用当前单元格并跳到下一个格子。
 ";
 
