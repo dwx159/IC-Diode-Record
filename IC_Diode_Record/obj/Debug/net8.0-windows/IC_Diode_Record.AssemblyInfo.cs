@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("IC_Diode_Record")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+57a0355e290b524a1c3024e213c440b782ff7198")]
 [assembly: System.Reflection.AssemblyProductAttribute("IC_Diode_Record")]
 [assembly: System.Reflection.AssemblyTitleAttribute("IC_Diode_Record")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

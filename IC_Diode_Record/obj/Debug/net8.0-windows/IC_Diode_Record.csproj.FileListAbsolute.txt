@@ -131,3 +131,4 @@ d:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Debug\net8.0-windows\ru
 d:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Debug\net8.0-windows\runtimes\win-x86\native\Microsoft.CognitiveServices.Speech.extension.kws.dll
 d:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Debug\net8.0-windows\runtimes\win-x86\native\Microsoft.CognitiveServices.Speech.extension.kws.ort.dll
 d:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\bin\Debug\net8.0-windows\runtimes\win-x86\native\Microsoft.CognitiveServices.Speech.extension.lu.dll
+D:\myWinForms\IC_Diode_Record-VS2022\IC_Diode_Record\obj\Debug\net8.0-windows\IC_Diode_Record.sourcelink.json
