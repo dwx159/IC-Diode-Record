@@ -10,14 +10,17 @@ using System.Windows.Forms;
 using OfficeOpenXml;
 using System.IO;
 using Microsoft.CognitiveServices.Speech;
-using System.Diagnostics;
 using System.Text.RegularExpressions;
 
 
 namespace IC_Diode_Record
 {
+    /// <summary>
+    /// 主窗体：表格创建/导入导出、禁用规则、语音写入、对比着色等业务入口。
+    /// </summary>
     public partial class Form1 : Form
     {
+        /// <summary>初始化窗体与设计器组件。</summary>
         public Form1()
         {
             InitializeComponent();
@@ -28,7 +31,9 @@ namespace IC_Diode_Record
 
 
 
-        //Form1_Load函数
+        /// <summary>
+        /// 窗体加载事件：初始化右键菜单、滚动保护事件、默认写入方向。
+        /// </summary>
         private void Form1_Load(object sender, EventArgs e)
         {
             // 初始化 DataGridView 右键菜单
@@ -64,6 +69,9 @@ namespace IC_Diode_Record
 
 
         #region keypress函数。限制textbox只能输入数字、小数
+        /// <summary>
+        /// 仅允许 TextBox 输入数字（含控制键），其余字符阻止。
+        /// </summary>
         private void onlyNum_KeyPress(object sender, KeyPressEventArgs e)
         {
             TextBox tb = sender as TextBox;
@@ -85,7 +93,9 @@ namespace IC_Diode_Record
 
 
         #region 重置datagridview函数
-        // 重置datagridview
+        /// <summary>
+        /// 重置 DataGridView：清结构、清选择、恢复默认样式与行为。
+        /// </summary>
         private void ResetDataGridView()
         {
             dataGridView1.SuspendLayout();
@@ -121,7 +131,9 @@ namespace IC_Diode_Record
 
 
         #region 创建datagridview按键点击函数
-        //设置DataGridView点击事件
+        /// <summary>
+        /// 「设置」按钮：确认后按输入行列重建表格并重置写入游标。
+        /// </summary>
         private void rowcol_set_btn_Click(object sender, EventArgs e)
         {
             // 弹出提示框
@@ -152,7 +164,9 @@ namespace IC_Diode_Record
 
 
         #region 创建datagridview函数
-        //创建datagridview大小和格式
+        /// <summary>
+        /// 根据行列构建表格并设置标题、字体、复制粘贴行为与窗口尺寸。
+        /// </summary>
         private void datagridview_creat(int row, int col)
         {
             // 禁止自动调整尺寸
@@ -198,7 +212,9 @@ namespace IC_Diode_Record
             ResizeFormToFitGrid();  //根据单元格计算调整窗口大小
         }
 
-        // 根据单元格计算窗口大小
+        /// <summary>
+        /// 根据网格内容计算并调整 DataGridView 与窗体尺寸（带上下限）。
+        /// </summary>
         private void ResizeFormToFitGrid()
         {
             int totalWidth = dataGridView1.RowHeadersWidth;
@@ -243,17 +259,17 @@ namespace IC_Diode_Record
 
 
         #region 防止滚动条自动滚动
-        // 防止滚动条自动滚动
-        // 全局变量，只记录编辑时滚动
+        /// <summary>编辑开始前记录的面板滚动位置。</summary>
         private Point _panelScrollPos;
+        /// <summary>当前是否处于单元格编辑态（用于滚动保护）。</summary>
         private bool _isEditing = false;
-        // 开始编辑单元格
+        /// <summary>开始编辑单元格时缓存滚动位置。</summary>
         private void dataGridView1_CellBeginEdit(object sender, DataGridViewCellCancelEventArgs e)
         {
             _isEditing = true;
             _panelScrollPos = panel1.AutoScrollPosition;
         }
-        // 结束编辑单元格
+        /// <summary>结束编辑时恢复滚动位置。</summary>
         private void dataGridView1_CellEndEdit(object sender, DataGridViewCellEventArgs e)
         {
             _isEditing = false;
@@ -261,8 +277,7 @@ namespace IC_Diode_Record
             // 仅在编辑时恢复滚动
             panel1.AutoScrollPosition = new Point(-_panelScrollPos.X, -_panelScrollPos.Y);
         }
-        // 普通选择单元格时不强制回滚
-        // （可选，如果你之前在 CurrentCellChanged 里回滚，可以删除）
+        /// <summary>编辑过程中切换当前单元格时继续保持滚动位置。</summary>
         private void dataGridView1_CurrentCellChanged(object sender, EventArgs e)
         {
             if (_isEditing)
@@ -276,7 +291,9 @@ namespace IC_Diode_Record
 
 
         #region datagridview按键函数（F1 禁用当前格并下一格、Ctrl+D、Ctrl+C/V）
-        // datagridview按键函数（表格相关快捷键）
+        /// <summary>
+        /// 表格快捷键入口：F1 禁用并前进，Ctrl+D 切换禁用，Ctrl+C/V 复制粘贴。
+        /// </summary>
         private void dataGridView1_KeyDown(object sender, KeyEventArgs e)
         {
             // F1：禁用当前单元格，并按当前写入方向跳到下一格
@@ -313,7 +330,9 @@ namespace IC_Diode_Record
 
 
         #region 多选禁用单元格函数
-        // 多选禁用单元格
+        /// <summary>
+        /// 对当前选区批量切换禁用状态：有任一可写则全禁用，否则全恢复可写。
+        /// </summary>
         private void ToggleSelectedCellsReadOnly()
         {
             if (dataGridView1.SelectedCells.Count == 0)
@@ -346,13 +365,17 @@ namespace IC_Diode_Record
             }
         }
 
-        // 禁用当前单元格并按当前写入方向跳到下一格（与 F1 / 语音「跳过」一致）
+        /// <summary>
+        /// 禁用当前单元格并按写入方向前进一格（F1/语音「跳过」共用）。
+        /// </summary>
         private void DisableCurrentCellAndAdvanceToNext()
         {
             DisableConsecutiveCellsAlongDirection(1, skipToNextWritableAfter: false);
         }
 
-        // 沿写入方向连续禁用 count 格；skipToNextWritableAfter 为 true 时（语音「跳过N个」N≥2）再前进到首个可写格
+        /// <summary>
+        /// 沿写入方向连续禁用 count 格；可选再跳到下一可写格（用于「跳过N个」）。
+        /// </summary>
         private void DisableConsecutiveCellsAlongDirection(int count, bool skipToNextWritableAfter)
         {
             if (count < 1 || dataGridView1.CurrentCell == null)
@@ -406,7 +429,7 @@ namespace IC_Diode_Record
 
 
         #region 清除按键点击事件---清除单元格数据，不清除禁用结构
-        //清除按键点击事件---清除单元格数据，不清除禁用结构
+        /// <summary>清空所有单元格值，不改变禁用结构与颜色规则。</summary>
         private void clear_data_btn_Click(object sender, EventArgs e)
         {
             // 弹出提示框
@@ -435,7 +458,9 @@ namespace IC_Diode_Record
 
 
         #region 导入数据按键函数（禁用、数值、颜色、tag、）
-        //导入按键点击事件
+        /// <summary>
+        /// 导入模板数据到表格：读取值、颜色、禁用信息，并按模板尺寸重建网格。
+        /// </summary>
         private void inportExcel_btn_Click(object sender, EventArgs e)
         {
             //打开对话框，选择excel模板文件
@@ -541,7 +566,6 @@ namespace IC_Diode_Record
                                         cell_datagridview.Value = importValue;
                                         //cell_datagridview.Tag = importValue;   // 同步保存到tag，用于后续对比
 
-                                        Debug.Print(cell_excel.Value.ToString());
                                     }
                                     else
                                     {
@@ -549,8 +573,6 @@ namespace IC_Diode_Record
                                         cell_datagridview.Value = cell_excel.Value;
                                         //cell_datagridview.Tag = null;
 
-                                        Debug.Print(cell_excel.Value.ToString());
-                                    
                                          //也可以在导入时将GND格子背景色填充为浅灰，这样就可以直接禁用单元格
                                         if (cell_excel.Value.ToString() == "GND")   // 如果单元格是GND就设置为禁用，跳过写入
                                         {
@@ -584,7 +606,9 @@ namespace IC_Diode_Record
 
 
         #region 导入数据对比按键函数(导入到datagridview的tag属性里)
-        //导入对比标准按键点击事件
+        /// <summary>
+        /// 导入对比基准：把 Excel 数值写入单元格 Tag，并立即触发一次颜色比较。
+        /// </summary>
         private void inportCompare_btn_Click(object sender, EventArgs e)
         {
             //打开对话框，选择excel模板文件
@@ -673,7 +697,7 @@ namespace IC_Diode_Record
 
 
         #region 复制粘贴函数
-        // 复制选中单元格（右键菜单）
+        /// <summary>复制当前选区为制表符文本，写入系统剪贴板。</summary>
         private void CopySelectedCells()
         {
             if (dataGridView1.GetCellCount(DataGridViewElementStates.Selected) > 0)
@@ -700,7 +724,7 @@ namespace IC_Diode_Record
         }
 
 
-        // 粘贴数据到当前单元格（右键菜单）
+        /// <summary>从当前单元格起粘贴剪贴板内容，自动跳过禁用单元格。</summary>
         private void PasteToSelectedCell()
         {
             if (dataGridView1.CurrentCell == null)
@@ -737,26 +761,31 @@ namespace IC_Diode_Record
 
 
 
-        #region 写入表格（语音读数）
-        // 写入数据按键事件
-        // 全局变量记录当前位置
+        #region 表格写入方向
+        /// <summary>写入游标所在行。</summary>
         private int currentRow = 0;
+        /// <summary>写入游标所在列。</summary>
         private int currentCol = 0;
 
-        private bool _isWriting = false; //是否正在写入数据状态
+        /// <summary>语音写入节流锁，防止连续识别重复写入。</summary>
+        private bool _isWriting = false;
+        /// <summary>表格自动前进方向。</summary>
         private enum WriteDirection
         {
             Horizontal,
             Vertical,
             CounterClockwise
         }
+        /// <summary>当前写入方向（默认横向）。</summary>
         private WriteDirection currentDirection = WriteDirection.Horizontal;
 
+        /// <summary>判断单元格是否位于表格最外圈。</summary>
         private static bool IsPerimeterCell(int row, int col, int totalRows, int totalCols)
         {
             return row == 0 || col == 0 || row == totalRows - 1 || col == totalCols - 1;
         }
 
+        /// <summary>构建逆时针最外圈路径（用于逆时针写入模式）。</summary>
         private static List<(int Row, int Col)> BuildCounterClockwisePerimeterPath(int totalRows, int totalCols)
         {
             var path = new List<(int Row, int Col)>();
@@ -795,6 +824,7 @@ namespace IC_Diode_Record
             return path;
         }
 
+        /// <summary>在逆时针模式下将内圈起点归一到外圈左上角。</summary>
         private void NormalizeCurrentCellForDirection(int totalRows, int totalCols)
         {
             if (currentDirection != WriteDirection.CounterClockwise)
@@ -807,6 +837,7 @@ namespace IC_Diode_Record
             currentCol = 0;
         }
 
+        /// <summary>按当前方向推进写入游标。</summary>
         private void AdvanceToNextCell(int totalRows, int totalCols)
         {
             switch (currentDirection)
@@ -852,75 +883,14 @@ namespace IC_Diode_Record
                     break;
             }
         }
-        /// <summary>将语音识别得到的读数写入当前流向的下一可写格，并前进。</summary>
-        private void WriteMeasurementToGrid(object cellValue, bool olOrange)
-        {
-            if (dataGridView1.ColumnCount == 0 || dataGridView1.RowCount == 0)
-                return;
-
-            int totalRows = dataGridView1.RowCount;
-            int totalCols = dataGridView1.ColumnCount;
-
-            if (dataGridView1.CurrentCell != null)
-            {
-                currentRow = dataGridView1.CurrentCell.RowIndex;
-                currentCol = dataGridView1.CurrentCell.ColumnIndex;
-            }
-
-            var startCell = dataGridView1.Rows[currentRow].Cells[currentCol];
-            if (!startCell.ReadOnly)
-                NormalizeCurrentCellForDirection(totalRows, totalCols);
-
-            int attempts = 0;
-            while (attempts < totalRows * totalCols)
-            {
-                var cell = dataGridView1.Rows[currentRow].Cells[currentCol];
-
-                if (!cell.ReadOnly)
-                {
-                    if (olOrange)
-                    {
-                        cell.Value = "OL";
-                        cell.Style.BackColor = Color.Orange;
-                    }
-                    else
-                    {
-                        cell.Value = cellValue;
-                        cell.Style.BackColor = Color.White;
-                    }
-
-                    AdvanceToNextCell(totalRows, totalCols);
-                    dataGridView1.CurrentCell = dataGridView1.Rows[currentRow].Cells[currentCol];
-                    break;
-                }
-
-                AdvanceToNextCell(totalRows, totalCols);
-                attempts++;
-            }
-
-            System.Media.SystemSounds.Exclamation.Play();
-        }
-
-        private async void CommitVoiceMeasurementAsync(object cellValue, bool olOrange)
-        {
-            if (_isWriting) return;
-            _isWriting = true;
-            try
-            {
-                WriteMeasurementToGrid(cellValue, olOrange);
-            }
-            finally
-            {
-                await Task.Delay(300);
-                _isWriting = false;
-            }
-        }
+        
 
         #endregion
 
 
 
         #region 下拉列表切换写入方向（横向/竖向/逆时针）
+        /// <summary>方向下拉框切换事件。</summary>
         private void direction_comboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             currentDirection = direction_comboBox.SelectedIndex switch
@@ -935,7 +905,7 @@ namespace IC_Diode_Record
 
 
         #region datagridview表格数据变化触发事件，数据对比函数（标记颜色）
-        // datagridview 数据变化触发事件---用于比较数据，标记颜色
+        /// <summary>单元格值变化时触发对比着色。</summary>
         private void dataGridView1_CellValueChanged(object sender, DataGridViewCellEventArgs e)
         {
 
@@ -946,9 +916,9 @@ namespace IC_Diode_Record
             CompareAndMarkCell(cell);
         }
 
-
-        // 数据对比判断，用于标记颜色
-        private double compareValue = 0.1; // 比较阈值全局变量，默认为0.1
+        /// <summary>对比阈值（当前值 - 基准值）。</summary>
+        private double compareValue = 0.1;
+        /// <summary>按阈值比较单元格 Value 与 Tag，并设置背景色。</summary>
         private void CompareAndMarkCell(DataGridViewCell cell)
         {
             // 禁用或无值，不处理
@@ -986,7 +956,9 @@ namespace IC_Diode_Record
 
 
         #region 导出数据到excel的函数
-        // 输出导出函数
+        /// <summary>
+        /// 导出当前表格到 Excel：值、行列头、背景色和基础样式一并输出。
+        /// </summary>
         private void ExportToExcelWithEPPlus()
         {
             using (SaveFileDialog saveFileDialog = new SaveFileDialog())
@@ -1138,7 +1110,7 @@ namespace IC_Diode_Record
 
 
         #region 保存按键点击事件
-        //保存按键点击事件
+        /// <summary>保存按钮事件：执行导出。</summary>
         private void save_btn_Click(object sender, EventArgs e)
         {
             ExportToExcelWithEPPlus();
@@ -1148,13 +1120,19 @@ namespace IC_Diode_Record
 
 
         #region 语音控制
-        // Azure 语音服务（联网）：中文识别质量优于本机 SAPI；免费层 F0 需 Azure 免费账号，每月有免费额度（以微软官网为准）。
+        /// <summary>Azure 连续识别实例。</summary>
         private SpeechRecognizer? _azureRecognizer;
+        /// <summary>语音识别开关状态（UI 与识别器状态同步）。</summary>
         private bool voiceEnabled = false;
 
+        /// <summary>停止并释放当前识别器（幂等）。</summary>
         private void StopVoiceRecognitionIfRunning()
         {
-            if (_azureRecognizer == null) return;
+            if (_azureRecognizer == null)
+            {
+                UpdateVoiceRawText(string.Empty);
+                return;
+            }
             try
             {
                 _azureRecognizer.StopContinuousRecognitionAsync().Wait(TimeSpan.FromSeconds(12));
@@ -1167,13 +1145,97 @@ namespace IC_Diode_Record
             catch { /* */ }
             _azureRecognizer = null;
             voiceEnabled = false;
+            UpdateVoiceRawText(string.Empty);
         }
 
+        /// <summary>将语音识别得到的读数写入当前流向的下一可写格，并前进。</summary>
+        private void WriteMeasurementToGrid(object cellValue, bool olOrange)
+        {
+            if (dataGridView1.ColumnCount == 0 || dataGridView1.RowCount == 0)
+                return;
+
+            int totalRows = dataGridView1.RowCount;
+            int totalCols = dataGridView1.ColumnCount;
+
+            if (dataGridView1.CurrentCell != null)
+            {
+                currentRow = dataGridView1.CurrentCell.RowIndex;
+                currentCol = dataGridView1.CurrentCell.ColumnIndex;
+            }
+
+            var startCell = dataGridView1.Rows[currentRow].Cells[currentCol];
+            if (!startCell.ReadOnly)
+                NormalizeCurrentCellForDirection(totalRows, totalCols);
+
+            int attempts = 0;
+            while (attempts < totalRows * totalCols)
+            {
+                var cell = dataGridView1.Rows[currentRow].Cells[currentCol];
+
+                if (!cell.ReadOnly)
+                {
+                    if (olOrange)
+                    {
+                        cell.Value = "OL";
+                        cell.Style.BackColor = Color.Orange;
+                    }
+                    else
+                    {
+                        cell.Value = cellValue;
+                        //cell.Style.BackColor = Color.White;
+                    }
+
+                    AdvanceToNextCell(totalRows, totalCols);
+                    dataGridView1.CurrentCell = dataGridView1.Rows[currentRow].Cells[currentCol];
+                    break;
+                }
+
+                AdvanceToNextCell(totalRows, totalCols);
+                attempts++;
+            }
+
+            System.Media.SystemSounds.Exclamation.Play();
+        }
+
+        /// <summary>语音写入提交（带短延时防抖）。</summary>
+        private async void CommitVoiceMeasurementAsync(object cellValue, bool olOrange)
+        {
+            if (_isWriting) return;
+            _isWriting = true;
+            try
+            {
+                WriteMeasurementToGrid(cellValue, olOrange);
+            }
+            finally
+            {
+                await Task.Delay(300);
+                _isWriting = false;
+            }
+        }
+
+        /// <summary>将 Azure 返回的原文显示到界面上。</summary>
+        private void UpdateVoiceRawText(string text)
+        {
+            if (voiceRaw_textBox.IsDisposed)
+                return;
+
+            if (voiceRaw_textBox.InvokeRequired)
+            {
+                voiceRaw_textBox.BeginInvoke(new Action(() => voiceRaw_textBox.Text = text));
+            }
+            else
+            {
+                voiceRaw_textBox.Text = text;
+            }
+        }
+
+        /// <summary>
+        /// Azure 识别结果回调：先解析跳过指令，再解析读数并写入表格。
+        /// </summary>
         private void AzureRecognizer_Recognized(object? sender, SpeechRecognitionEventArgs e)
         {
-            // 调试：在 Visual Studio「输出」窗口查看 Azure 返回的原文（显示来自: 调试）
             string raw = e.Result.Text ?? string.Empty;
-            Debug.WriteLine($"[语音] Reason={e.Result.Reason}, 原文: \"{raw}\"");
+            UpdateVoiceRawText(raw);
 
             if (e.Result.Reason != ResultReason.RecognizedSpeech)
                 return;
@@ -1188,13 +1250,13 @@ namespace IC_Diode_Record
 
             if (!VoiceRecognitionParser.TryParseMeasurement(e.Result.Text, out object? meas, out bool ol))
             {
-                Debug.WriteLine($"[语音] 解析未命中（非跳过指令且无法解析为测量）原文: \"{raw}\"");
                 return;
             }
 
             this.BeginInvoke(new Action(() => CommitVoiceMeasurementAsync(meas!, ol)));
         }
 
+        /// <summary>Azure 取消/错误回调（仅错误时提示）。</summary>
         private void AzureRecognizer_Canceled(object? sender, SpeechRecognitionCanceledEventArgs e)
         {
             if (e.Reason != CancellationReason.Error)
@@ -1209,6 +1271,7 @@ namespace IC_Diode_Record
             }));
         }
 
+        /// <summary>打开 Azure 语音配置窗口并保存密钥/区域。</summary>
         private void voiceAzure_btn_Click(object sender, EventArgs e)
         {
             using var dlg = new VoiceAzureConfigForm(AzureVoiceSettings.Load());
@@ -1217,6 +1280,7 @@ namespace IC_Diode_Record
             MessageBox.Show("已保存。请点击「语音」开启识别，读出数值或「跳过」等指令。", "Azure 语音", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
+        /// <summary>开启/关闭 Azure 连续语音识别。</summary>
         private async void voiceControl_btn_Click(object sender, EventArgs e)
         {
             try
@@ -1312,7 +1376,7 @@ namespace IC_Diode_Record
          * 
          * 
          */
-        //内容太多，只显示关键的吧
+        /// <summary>弹出简化版使用说明。</summary>
         private void help_btn_Click(object sender, EventArgs e)
         {
             string helpText = @"关键功能
@@ -1342,7 +1406,9 @@ namespace IC_Diode_Record
 
 
         #region 程序退出时弹出对话框
-        //程序退出时提示保存
+        /// <summary>
+        /// 关闭窗体时提示是否保存；同时确保语音识别器已正确停止释放。
+        /// </summary>
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             StopVoiceRecognitionIfRunning();

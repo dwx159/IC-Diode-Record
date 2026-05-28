@@ -50,6 +50,8 @@ namespace IC_Diode_Record
             inportCompare_btn = new Button();
             panel1 = new Panel();
             panel2 = new Panel();
+            voiceRaw_groupBox = new GroupBox();
+            voiceRaw_textBox = new TextBox();
             help_groupBox = new GroupBox();
             help_btn = new Button();
             voice_groupBox = new GroupBox();
@@ -61,6 +63,7 @@ namespace IC_Diode_Record
             data_groupBox.SuspendLayout();
             panel1.SuspendLayout();
             panel2.SuspendLayout();
+            voiceRaw_groupBox.SuspendLayout();
             help_groupBox.SuspendLayout();
             voice_groupBox.SuspendLayout();
             SuspendLayout();
@@ -294,6 +297,7 @@ namespace IC_Diode_Record
             // 
             // panel2
             // 
+            panel2.Controls.Add(voiceRaw_groupBox);
             panel2.Controls.Add(help_groupBox);
             panel2.Controls.Add(voice_groupBox);
             panel2.Controls.Add(cellset_groupBox);
@@ -304,10 +308,30 @@ namespace IC_Diode_Record
             panel2.Size = new Size(1654, 115);
             panel2.TabIndex = 17;
             // 
+            // voiceRaw_groupBox
+            // 
+            voiceRaw_groupBox.Controls.Add(voiceRaw_textBox);
+            voiceRaw_groupBox.Location = new Point(906, 4);
+            voiceRaw_groupBox.Name = "voiceRaw_groupBox";
+            voiceRaw_groupBox.Size = new Size(253, 104);
+            voiceRaw_groupBox.TabIndex = 18;
+            voiceRaw_groupBox.TabStop = false;
+            voiceRaw_groupBox.Text = "语音原文";
+            // 
+            // voiceRaw_textBox
+            // 
+            voiceRaw_textBox.Location = new Point(8, 28);
+            voiceRaw_textBox.Multiline = true;
+            voiceRaw_textBox.Name = "voiceRaw_textBox";
+            voiceRaw_textBox.ReadOnly = true;
+            voiceRaw_textBox.ScrollBars = ScrollBars.Vertical;
+            voiceRaw_textBox.Size = new Size(235, 68);
+            voiceRaw_textBox.TabIndex = 0;
+            // 
             // help_groupBox
             // 
             help_groupBox.Controls.Add(help_btn);
-            help_groupBox.Location = new Point(900, 4);
+            help_groupBox.Location = new Point(770, 4);
             help_groupBox.Name = "help_groupBox";
             help_groupBox.Size = new Size(130, 104);
             help_groupBox.TabIndex = 17;
@@ -330,7 +354,7 @@ namespace IC_Diode_Record
             voice_groupBox.Controls.Add(voicestate_RioBtn);
             voice_groupBox.Controls.Add(voiceAzure_btn);
             voice_groupBox.Controls.Add(voiceControl_btn);
-            voice_groupBox.Location = new Point(761, 4);
+            voice_groupBox.Location = new Point(632, 4);
             voice_groupBox.Name = "voice_groupBox";
             voice_groupBox.Size = new Size(132, 104);
             voice_groupBox.TabIndex = 16;
@@ -388,6 +412,8 @@ namespace IC_Diode_Record
             data_groupBox.PerformLayout();
             panel1.ResumeLayout(false);
             panel2.ResumeLayout(false);
+            voiceRaw_groupBox.ResumeLayout(false);
+            voiceRaw_groupBox.PerformLayout();
             help_groupBox.ResumeLayout(false);
             voice_groupBox.ResumeLayout(false);
             voice_groupBox.PerformLayout();
@@ -423,6 +449,8 @@ namespace IC_Diode_Record
         private Label inportExcel_label;
         private GroupBox help_groupBox;
         private Button help_btn;
+        private GroupBox voiceRaw_groupBox;
+        private TextBox voiceRaw_textBox;
     }
 }
 
