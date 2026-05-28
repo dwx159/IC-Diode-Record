@@ -62,8 +62,7 @@ namespace IC_Diode_Record
             dataGridView1.CellEndEdit += dataGridView1_CellEndEdit;
             dataGridView1.CurrentCellChanged += dataGridView1_CurrentCellChanged;
 
-            // 写入方向默认值
-            direction_comboBox.SelectedIndex = 0;
+            
 
         }
 
@@ -529,7 +528,7 @@ namespace IC_Diode_Record
 
                                 // 判断是否有填充颜色
                                 if (fill.PatternType == OfficeOpenXml.Style.ExcelFillStyle.Solid)
-                                { 
+                                {
                                     //要判断是否填充的是普通颜色，还是主题颜色
                                     if (bgcolor.Theme.HasValue)  //如果是主题颜色
                                     {
@@ -576,21 +575,22 @@ namespace IC_Diode_Record
                                         //cell_datagridview.Tag = null;
 
                                         Debug.Print(cell_excel.Value.ToString());
-                                    
-                                         //也可以在导入时将GND格子背景色填充为浅灰，这样就可以直接禁用单元格
+
+                                        //也可以在导入时将GND格子背景色填充为浅灰，这样就可以直接禁用单元格
                                         if (cell_excel.Value.ToString() == "GND")   // 如果单元格是GND就设置为禁用，跳过写入
                                         {
                                             // 禁用单元格
                                             cell_datagridview.ReadOnly = true;
                                             cell_datagridview.Style.BackColor = Color.LightGreen;    // 浅灰色对应的AARRGGBB就是FFFFFFFF（RGB都是211）
                                         }
-                                    
+
                                     }
-                                }else
+                                }
+                                else
                                 {
 
                                 }
-                                    
+
 
                             }
 
@@ -863,6 +863,8 @@ namespace IC_Diode_Record
         private int currentRow = 0;
         private int currentCol = 0;
 
+        private double OLValue = 2;         //OL的判断值，默认设置为2V
+
         private bool _isWriting = false; //是否正在写入数据状态
         private enum WriteDirection
         {
@@ -980,8 +982,8 @@ namespace IC_Diode_Record
 
             try
             {
-                
-                
+
+
                 //发送串口读取命令
                 serialPort.Write("READ_ON");  // 发送文本
 
@@ -991,7 +993,7 @@ namespace IC_Diode_Record
                 string data_receive = serialPort.ReadExisting();  // 读取所有可用数据
                 data_receive = data_receive.Trim(); // 去掉空格、\r、\n
                 double.TryParse(data_receive, out double data_receive_double);  //转换为double数值
-                
+
 
                 // data_receive_double = 1;  //调试代码
 
@@ -1023,16 +1025,16 @@ namespace IC_Diode_Record
                     // 如果单元格可写
                     if (!cell.ReadOnly)
                     {
-                        if (data_receive_double > 2.2)
+                        if (data_receive_double > OLValue)              // 数据大于设定值，就判断为OL
                         {
-                            cell.Value = "OL";                      // 数据大于2.2V，就判断为OL
+                            cell.Value = "OL";
                             cell.Style.BackColor = Color.Orange;    // 橙色
                         }
                         else
                         {
                             cell.Value = data_receive_double;       // 数据小于2.2V，正常写入
                         }
-                        
+
 
                         // 根据方向切到下一个格子
                         AdvanceToNextCell(totalRows, totalCols);
@@ -1388,8 +1390,17 @@ namespace IC_Diode_Record
 
         private static readonly Dictionary<char, int> VoiceChineseDigitMap = new()
         {
-            ['零'] = 0, ['一'] = 1, ['二'] = 2, ['两'] = 2, ['三'] = 3, ['四'] = 4, ['五'] = 5,
-            ['六'] = 6, ['七'] = 7, ['八'] = 8, ['九'] = 9,
+            ['零'] = 0,
+            ['一'] = 1,
+            ['二'] = 2,
+            ['两'] = 2,
+            ['三'] = 3,
+            ['四'] = 4,
+            ['五'] = 5,
+            ['六'] = 6,
+            ['七'] = 7,
+            ['八'] = 8,
+            ['九'] = 9,
         };
 
         private static bool TryParseChineseNumberLite(string s, out int value)
@@ -1673,7 +1684,24 @@ namespace IC_Diode_Record
         }
 
         #endregion
-   
-    
+
+        private void OL_combobox_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (OL_combobox.SelectedItem != null)
+            {
+                // 如果 Items 里是字符串，就转成 double
+                // 如果 Items 里已经是 double，则直接强转
+                string selectedString = OL_combobox.SelectedItem.ToString();
+                if (double.TryParse(selectedString, out double val))
+                {
+                    OLValue = val;
+                }
+                else
+                {
+                    // 处理转换失败的情况（比如用户输入了非数字）
+                    OLValue = 2;
+                }
+            }
+        }
     }
 }

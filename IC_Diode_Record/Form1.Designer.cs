@@ -50,6 +50,8 @@ namespace IC_Diode_Record
             inportExcel_btn = new Button();
             serialpoart_groupBox = new GroupBox();
             data_groupBox = new GroupBox();
+            OL_label = new Label();
+            OL_combobox = new ComboBox();
             inportCompare_label = new Label();
             inportExcel_label = new Label();
             inportCompare_btn = new Button();
@@ -268,6 +270,7 @@ namespace IC_Diode_Record
             direction_comboBox.Size = new Size(67, 32);
             direction_comboBox.TabIndex = 13;
             direction_comboBox.SelectedIndexChanged += direction_comboBox_SelectedIndexChanged;
+            direction_comboBox.SelectedIndex = 0; // 写入方向默认值
             // 
             // clear_data_btn
             // 
@@ -307,6 +310,8 @@ namespace IC_Diode_Record
             // 
             // data_groupBox
             // 
+            data_groupBox.Controls.Add(OL_label);
+            data_groupBox.Controls.Add(OL_combobox);
             data_groupBox.Controls.Add(inportCompare_label);
             data_groupBox.Controls.Add(inportExcel_label);
             data_groupBox.Controls.Add(inportCompare_btn);
@@ -317,10 +322,32 @@ namespace IC_Diode_Record
             data_groupBox.Margin = new Padding(4);
             data_groupBox.Name = "data_groupBox";
             data_groupBox.Padding = new Padding(4);
-            data_groupBox.Size = new Size(337, 104);
+            data_groupBox.Size = new Size(405, 104);
             data_groupBox.TabIndex = 14;
             data_groupBox.TabStop = false;
             data_groupBox.Text = "数据操作";
+            // 
+            // OL_label
+            // 
+            OL_label.AutoSize = true;
+            OL_label.Font = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Regular, GraphicsUnit.Point, 134);
+            OL_label.Location = new Point(343, 28);
+            OL_label.Name = "OL_label";
+            OL_label.Size = new Size(44, 20);
+            OL_label.TabIndex = 22;
+            OL_label.Text = "OL值";
+            // 
+            // OL_combobox
+            // 
+            OL_combobox.DropDownStyle = ComboBoxStyle.DropDownList;
+            OL_combobox.FormattingEnabled = true;
+            OL_combobox.Items.AddRange(new object[] { "2", "3", "4", "5" });
+            OL_combobox.Location = new Point(332, 57);
+            OL_combobox.Name = "OL_combobox";
+            OL_combobox.Size = new Size(67, 32);
+            OL_combobox.TabIndex = 21;
+            OL_combobox.SelectedIndexChanged += OL_combobox_SelectedIndexChanged;
+            OL_combobox.SelectedIndex = 0; // 写入方向默认值
             // 
             // inportCompare_label
             // 
@@ -357,11 +384,11 @@ namespace IC_Diode_Record
             train_groupBox.Controls.Add(train_label);
             train_groupBox.Controls.Add(train_btn);
             train_groupBox.Controls.Add(train_textbox);
-            train_groupBox.Location = new Point(1113, 4);
+            train_groupBox.Location = new Point(1191, 4);
             train_groupBox.Margin = new Padding(4);
             train_groupBox.Name = "train_groupBox";
             train_groupBox.Padding = new Padding(4);
-            train_groupBox.Size = new Size(253, 104);
+            train_groupBox.Size = new Size(175, 104);
             train_groupBox.TabIndex = 15;
             train_groupBox.TabStop = false;
             train_groupBox.Text = "校准设置";
@@ -371,12 +398,12 @@ namespace IC_Diode_Record
             train_label.AutoSize = true;
             train_label.Font = new Font("Microsoft YaHei UI", 7.5F, FontStyle.Regular, GraphicsUnit.Point, 134);
             train_label.ForeColor = Color.Maroon;
-            train_label.Location = new Point(84, 35);
+            train_label.Location = new Point(83, 29);
             train_label.Margin = new Padding(4, 0, 4, 0);
             train_label.Name = "train_label";
-            train_label.Size = new Size(167, 60);
+            train_label.Size = new Size(84, 60);
             train_label.TabIndex = 2;
-            train_label.Text = "首次连接后校准\r\n1.测试一个值然后输入\r\n2.再点击校准(边侧边点)";
+            train_label.Text = "输入测试值\r\n再点击校准\r\n(边侧边点)";
             // 
             // train_btn
             // 
@@ -499,8 +526,8 @@ namespace IC_Diode_Record
             Name = "Form1";
             Text = "Form1";
             FormClosing += Form1_FormClosing;
-            KeyDown += Form1_KeyDown;
             Load += Form1_Load;
+            KeyDown += Form1_KeyDown;
             ((System.ComponentModel.ISupportInitialize)dataGridView1).EndInit();
             cellset_groupBox.ResumeLayout(false);
             cellset_groupBox.PerformLayout();
@@ -551,10 +578,12 @@ namespace IC_Diode_Record
         private Label switchvertical_label;
         private Label clear_data_label;
         private Label rowcol_set_label;
-        private Label inportCompare_label;
-        private Label inportExcel_label;
         private GroupBox help_groupBox;
         private Button help_btn;
+        private Label inportCompare_label;
+        private Label inportExcel_label;
+        private Label OL_label;
+        private ComboBox OL_combobox;
     }
 }
 
